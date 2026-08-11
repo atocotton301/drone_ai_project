@@ -1,0 +1,10 @@
+path: ../datasets/real_tactical_data
+train: images/train2017
+val: images/train2017
+
+# Classes
+names:
+  0: person
+  1: weapon
+  2: fire
+  3: smoke

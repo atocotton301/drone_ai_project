@@ -1,0 +1,32 @@
+# Datasets
+datasets/raw/*
+datasets/converted/*
+datasets/final/*
+!datasets/sample/
+*.zip
+
+# Weights
+*.pt
+*.onnx
+*.engine
+
+# ROS / Mapping
+*.bag
+outputs/maps/*
+outputs/benchmarks/*
+outputs/validation/*
+outputs/sample_labels/*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Logs
+*.log
+
+# Personal/Secrets
+.env
+secret_*

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCS - Vision SLAM Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050810;
+            --panel-bg: rgba(10, 20, 35, 0.4);
+            --panel-border: rgba(0, 255, 255, 0.3);
+            --text-main: #e0f2fe;
+            --accent-cyan: #00ffff;
+            --accent-green: #39ff14;
+            --accent-red: #ff3333;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            background-image: 
+                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 25px;
+            background: rgba(0, 0, 0, 0.5);
+            border-bottom: 1px solid var(--panel-border);
+            z-index: 100;
+        }
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent-cyan);
+            margin: 0;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .upload-btn {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .upload-btn:hover { background: rgba(0, 255, 255, 0.3); }
+
+        /* Split Layout */
+        .split-container {
+            display: flex;
+            flex: 1;
+            width: 100%;
+        }
+
+        /* 50% Panel Base */
+        .half-panel {
+            flex: 1;
+            position: relative;
+            border-right: 1px solid rgba(0, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            background: #000;
+        }
+
+        /* Left: Vision Camera */
+        .vision-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        .vision-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.9;
+        }
+        
+        /* HUD Overlays for Vision */
+        .hud-overlay {
+            position: absolute;
+            pointer-events: none;
+            font-family: 'Orbitron', sans-serif;
+        }
+        .hud-top-left {
+            top: 20px; left: 20px;
+            color: var(--accent-cyan);
+            font-size: 1.2rem;
+            text-shadow: 0 0 8px #000;
+        }
+        .rec-dot {
+            display: inline-block;
+            width: 12px; height: 12px;
+            background-color: var(--accent-red);
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse-danger 1.5s infinite;
+        }
+
+        /* Alerts Overlay (Bottom of Camera) */
+        .alerts-overlay {
+            position: absolute;
+            bottom: 20px; left: 20px;
+            width: calc(100% - 40px);
+            pointer-events: none;
+            display: flex;
+            flex-direction: column-reverse; /* 최신 알림이 밑에서 위로 쌓이게 */
+            gap: 10px;
+        }
+        .alert-item {
+            background: rgba(255, 51, 51, 0.2);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--accent-red);
+            border-left: 5px solid var(--accent-red);
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: #fff;
+            text-shadow: 0 0 5px #000;
+            display: flex;
+            justify-content: space-between;
+            animation: slide-in 0.3s ease-out forwards;
+            max-width: 80%;
+        }
+
+        /* Right: SLAM Map */
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: rgba(0, 15, 5, 0.8);
+            overflow: hidden;
+        }
+        .map-grid-bg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(57, 255, 20, 0.15) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(57, 255, 20, 0.15) 1px, transparent 1px);
+            background-size: 40px 40px; /* 큰 그리드 */
+        }
+        .map-center-crosshair {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            border-top: 1px dashed rgba(57, 255, 20, 0.3);
+            border-left: 1px dashed rgba(57, 255, 20, 0.3);
+            transform: translate(-50%, -50%);
+        }
+        .drone-marker {
+            position: absolute;
+            width: 0; height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 24px solid var(--accent-green);
+            transform: translate(-50%, -50%);
+            filter: drop-shadow(0 0 10px var(--accent-green));
+            transition: all 0.3s ease-out;
+            z-index: 10;
+        }
+        .trajectory-dot {
+            position: absolute;
+            width: 4px; height: 4px;
+            background: rgba(57, 255, 20, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .threat-marker {
+            position: absolute;
+            width: 16px; height: 16px;
+            background: var(--accent-red);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px var(--accent-red);
+            animation: pulse-danger 1s infinite;
+            z-index: 5;
+        }
+        .survivor-marker {
+            position: absolute;
+            width: 16px; height: 16px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px var(--accent-green);
+            animation: pulse-danger 1s infinite;
+            z-index: 5;
+        }
+        .node-marker {
+            position: absolute;
+            width: 20px; height: 20px;
+            background: #0088ff;
+            border: 2px solid #fff;
+            border-radius: 4px;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px #0088ff;
+            z-index: 6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .node-marker::after {
+            content: "↑";
+            color: #fff;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        /* Telemetry Overlay (Top Right of Map) */
+        .telemetry-overlay {
+            position: absolute;
+            top: 20px; right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--accent-green);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent-green);
+            min-width: 150px;
+        }
+        .tel-layer-badge {
+            background: var(--accent-cyan);
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 900;
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .tel-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(57, 255, 20, 0.2);
+            padding-bottom: 4px;
+        }
+        .tel-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .tel-label { color: #888; font-size: 0.8rem; }
+        .tel-val { font-size: 1.1rem; font-weight: bold; }
+
+        /* Failsafe Overlay */
+        .failsafe-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(20, 0, 0, 0.85);
+            backdrop-filter: blur(15px);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        .failsafe-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+            animation: bg-pulse-danger 2s infinite;
+        }
+        .failsafe-overlay h1 {
+            font-size: 6rem;
+            color: var(--accent-red);
+            text-shadow: 0 0 40px var(--accent-red);
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+        }
+        .failsafe-overlay h2 { color: #fff; font-size: 2rem; margin-top: 10px; font-family: 'Orbitron', sans-serif; }
+
+        @keyframes pulse-danger {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; box-shadow: 0 0 25px rgba(255, 51, 51, 0.8); }
+            100% { opacity: 1; }
+        }
+        @keyframes slide-in {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes bg-pulse-danger {
+            0% { box-shadow: inset 0 0 0 10px rgba(255, 0, 0, 0.5); }
+            50% { box-shadow: inset 0 0 0 30px rgba(255, 0, 0, 0.8); }
+            100% { box-shadow: inset 0 0 0 10px rgba(255, 0, 0, 0.5); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="failsafe-overlay" class="failsafe-overlay">
+        <h1>CRITICAL FAILSAFE</h1>
+        <h2>LINK LOST - INITIATING AUTO RETURN</h2>
+    </div>
+
+    <header class="header">
+        <h1><span style="color: #fff;">VISION</span> // SLAM EXPLORER</h1>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div id="system-status" style="color:var(--accent-cyan); font-family:'Orbitron'; font-weight:bold;">STANDBY</div>
+            <input type="file" id="log-file-input" accept=".csv" style="display: none;" onchange="uploadLogFile(event)">
+            <button class="upload-btn" onclick="document.getElementById('log-file-input').click()">📁 LOAD BLACKBOX</button>
+        </div>
+    </header>
+
+    <div class="split-container">
+        
+        <!-- Left: AI Vision Feed -->
+        <div class="half-panel">
+            <div class="vision-container">
+                <img src="/video_feed" alt="AI Vision View" id="camera-feed">
+                
+                <div class="hud-overlay hud-top-left">
+                    <span class="rec-dot"></span> AI VISION DETECTING
+                </div>
+
+                <div class="alerts-overlay" id="alert-list">
+                    <!-- Alerts injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: SLAM Map -->
+        <div class="half-panel">
+            <div class="map-container" id="map-area">
+                <div class="hud-overlay hud-top-left" style="color:var(--accent-green);">
+                    3D SLAM MAPPING (OFF-GRID)
+                </div>
+                
+                <div class="map-grid-bg"></div>
+                <div class="map-center-crosshair"></div>
+                
+                <!-- Trajectory and Drone Marker -->
+                <div id="trajectory-layer"></div>
+                <div id="drone-icon" class="drone-marker" style="top: 50%; left: 50%;"></div>
+                
+                <!-- Telemetry HUD -->
+                <div class="telemetry-overlay">
+                    <div class="tel-layer-badge" id="layer-badge">LAYER: 1F</div>
+                    <div class="tel-row">
+                        <span class="tel-label">MODE</span>
+                        <span class="tel-val" id="flight-mode" style="color:var(--accent-cyan);">OFFBOARD</span>
+                    </div>
+                    <div class="tel-row">
+                        <span class="tel-label">ALT</span>
+                        <span class="tel-val"><span id="pos-z">0.0</span>m</span>
+                    </div>
+                    <div class="tel-row">
+                        <span class="tel-label">POS X</span>
+                        <span class="tel-val"><span id="pos-x">0.0</span>m</span>
+                    </div>
+                    <div class="tel-row">
+                        <span class="tel-label">POS Y</span>
+                        <span class="tel-val"><span id="pos-y">0.0</span>m</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const mapArea = document.getElementById('map-area');
+        const trajectoryLayer = document.getElementById('trajectory-layer');
+        let lastX = 0, lastY = 0;
+        let isFailsafe = false;
+        let currentLayer = 1; // 1층 기준
+
+        function calculateFloor(z) {
+            // 0~3m: 1F, 3~6m: 2F, -3~0m: B1 등
+            if (z >= 0) {
+                return Math.floor(z / 3.0) + 1;
+            } else {
+                return Math.floor(z / 3.0); // -1: B1, -2: B2
+            }
+        }
+        
+        function formatFloor(floorNum) {
+            if (floorNum > 0) return `${floorNum}F`;
+            if (floorNum < 0) return `B${Math.abs(floorNum)}`;
+            return `GND`;
+        }
+
+        async function fetchState() {
+            try {
+                const response = await fetch('/api/state');
+                const data = await response.json();
+                
+                const statusEl = document.getElementById('system-status');
+                const overlay = document.getElementById('failsafe-overlay');
+                
+                statusEl.innerText = data.status;
+                
+                // Status Handling for Failsafe
+                if (data.status.includes('FAILSAFE')) {
+                    statusEl.style.color = "var(--accent-red)";
+                    if(!isFailsafe) {
+                        overlay.classList.add('active');
+                        isFailsafe = true;
+                    }
+                } else {
+                    statusEl.style.color = "var(--accent-cyan)";
+                    if(isFailsafe) {
+                        overlay.classList.remove('active');
+                        isFailsafe = false;
+                    }
+                }
+
+                // Telemetry
+                document.getElementById('pos-x').innerText = data.x.toFixed(1);
+                document.getElementById('pos-y').innerText = data.y.toFixed(1);
+                document.getElementById('pos-z').innerText = data.z.toFixed(1);
+
+                // Layer / Floor Logic
+                const newLayer = calculateFloor(data.z);
+                if (newLayer !== currentLayer) {
+                    currentLayer = newLayer;
+                    document.getElementById('layer-badge').innerText = `LAYER: ${formatFloor(currentLayer)}`;
+                    // 층이 바뀌면 기존 도화지 초기화 (새로운 층 맵핑 시작)
+                    trajectoryLayer.innerHTML = '';
+                    
+                    // 전환 알림 추가
+                    const alertList = document.getElementById('alert-list');
+                    const div = document.createElement('div');
+                    div.className = 'alert-item';
+                    div.style.borderColor = '#0088ff';
+                    div.innerHTML = `<span style="color:#0088ff;">>>> ELEVATION SHIFT TO ${formatFloor(currentLayer)} <<<</span>`;
+                    alertList.appendChild(div);
+                }
+
+                // Map logic (center = 50%, 1m = 2% of screen to make movements visible)
+                const percentX = 50 + (data.x * 2); 
+                const percentY = 50 - (data.y * 2);
+                
+                const drone = document.getElementById('drone-icon');
+                drone.style.left = `${percentX}%`;
+                drone.style.top = `${percentY}%`;
+                // Simple rotation based on yaw (if provided, else default)
+                let yaw = data.yaw || 0;
+                drone.style.transform = `translate(-50%, -50%) rotate(${yaw}deg)`;
+
+                // Draw trajectory if moved significantly
+                if (Math.abs(data.x - lastX) > 0.5 || Math.abs(data.y - lastY) > 0.5) {
+                    const dot = document.createElement('div');
+                    dot.className = 'trajectory-dot';
+                    dot.style.left = `${percentX}%`;
+                    dot.style.top = `${percentY}%`;
+                    trajectoryLayer.appendChild(dot);
+                    lastX = data.x;
+                    lastY = data.y;
+                }
+
+                // Alerts Update (only render new ones to preserve animation)
+                const alertList = document.getElementById('alert-list');
+                if (data.alerts && data.alerts.length > 0 && alertList.children.length !== data.alerts.length) {
+                    alertList.innerHTML = '';
+                    data.alerts.forEach((alertText, index) => {
+                        const div = document.createElement('div');
+                        div.className = 'alert-item';
+                        div.innerHTML = `<span>${alertText}</span>`;
+                        alertList.appendChild(div);
+                        
+                        // Drop markers based on alert type
+                        if(index === 0 && alertText.includes('발견')) {
+                            const marker = document.createElement('div');
+                            if (alertText.includes('수직 이동로')) {
+                                marker.className = 'node-marker';
+                            } else if (alertText.includes('생존자')) {
+                                marker.className = 'survivor-marker';
+                            } else {
+                                marker.className = 'threat-marker';
+                            }
+                            marker.style.left = `${percentX}%`;
+                            marker.style.top = `${percentY}%`;
+                            trajectoryLayer.appendChild(marker);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Connection error", error);
+            }
+        }
+
+        async function uploadLogFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                // Clear previous trajectory
+                trajectoryLayer.innerHTML = '';
+                document.getElementById('alert-list').innerHTML = '';
+                
+                const response = await fetch('/api/upload_log', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    console.log("Replay started.");
+                }
+            } catch (error) {
+                alert("Upload failed.");
+                console.error(error);
+            }
+        }
+
+        setInterval(fetchState, 100); // 100ms for smooth replay
+    </script>
+</body>
+</html>

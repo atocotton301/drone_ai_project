@@ -1,0 +1,10 @@
+train: ./train/images
+val: ./valid/images
+test: ./test/images
+
+nc: 4
+names:
+  0: person
+  1: weapon
+  2: fire
+  3: smoke

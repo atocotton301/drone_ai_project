@@ -1,0 +1,25 @@
+# PX4 Offline (GPS-OFF) Flight Parameters
+# 대상: Holybro Pixhawk 6C + H-Flow (Optical Flow & Lidar)
+# 용도: GPS 없는 밀폐 공간(실내, 지하 등)에서의 안정적인 Position Hold (제자리 비행)
+
+# 1. EKF2 (Estimator) 설정: 센서 데이터 융합 가중치 설정
+# GPS 의존성을 완전히 제거하고 Optical Flow와 Vision/Lidar 위주로 융합합니다.
+EKF2_GPS_CTRL   0       # GPS 데이터 무시 (0=Disabled)
+EKF2_OF_CTRL    1       # Optical Flow 데이터 융합 활성화
+EKF2_RNG_CTRL   1       # Range Finder(거리 센서) 데이터 융합 활성화
+EKF2_HGT_MODE   2       # 고도 추정의 주요 소스를 Range Finder로 설정 (2=Range finder)
+
+# 2. H-Flow 센서 장착 방향 (Rotation)
+# 기체 전방(X축)과 센서의 방향 표시가 일치하는지 확인 후 설정.
+SENS_FLOW_ROT   0       # 0=No rotation, 8=180도 회전 (물리적 장착 방향에 따라 변경)
+
+# 3. 비상(Failsafe) 시나리오 설정
+# 통신(RC 또는 MAVLink) 단절 시 Return-to-Home(RTH)이 아닌 안전 조치를 취하도록 변경.
+COM_RC_IN_MODE  1       # RC 신호 상실 대비 모드 (MAVLink 기반 제어 허용)
+NAV_RCL_ACT     1       # RC 단절 시 RTH 대신 Position Hold(제자리 비행) 대기
+NAV_DLL_ACT     1       # Data Link(MAVLink) 단절 시에도 Hold
+COM_OBL_ACT     2       # 일정 시간 후 오프라인 상태 지속 시 Land(자동 착륙) 모드 진입
+
+# 4. (옵션) 실내 속도 제한
+# 벽면 충돌을 방지하기 위해 최대 수평 비행 속도를 줄입니다.
+MPC_VEL_MAN     3.0     # 수평 매뉴얼 비행 속도를 3m/s로 제한 (기본값보다 낮게 설정)
