@@ -121,11 +121,17 @@ def train(epochs: int, batch: int, imgsz: int, device: str):
         save=True,
         plots=True,           # 학습 곡선 그래프 저장
         verbose=True,
-        hsv_v=0.4,
-        flipud=0.0,           # 드론 영상 특성상 상하 반전 없음
-        fliplr=0.5,
-        mosaic=1.0,
-        mixup=0.1,
+        # === [고급 데이터 증강 (Data Augmentation) 옵션] ===
+        hsv_h=0.015,   # 색조 변환
+        hsv_s=0.7,     # 채도 변환
+        hsv_v=0.4,     # 어두운 복도 환경 시뮬레이션
+        degrees=15.0,  # 드론 카메라 회전/흔들림
+        translate=0.1, # 화면 흔들림
+        scale=0.5,     # 크기 변환
+        flipud=0.0,    # 상하 반전 (드론 영상 특성상 0)
+        fliplr=0.5,    # 좌우 반전
+        mosaic=1.0,    # 4장 모자이크 
+        mixup=0.2      # 겹침 효과
     )
 
     best_pt = Path(f"runs/detect/{TRAIN_RUN_NAME}/weights/best.pt")
