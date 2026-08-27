@@ -15,7 +15,7 @@
 #   - door:       Roboflow Door Detection (공개)
 #   - staircase:  Roboflow Staircase Detection (공개)
 
-path: /home/chow/drone_ai_project/datasets/final
+path: datasets/final
 train: images/train
 val:   images/val
 
