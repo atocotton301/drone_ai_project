@@ -371,46 +371,11 @@
             color: var(--primary);
         }
 
-        /* ── FAILSAFE OVERLAY ── */
-        #failsafe-overlay {
-            position: fixed; inset: 0;
-            background: rgba(255,255,255,0.9);
-            backdrop-filter: blur(8px);
-            z-index: 9999;
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center; gap: 16px;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        #failsafe-overlay.active { opacity: 1; pointer-events: all; }
-        
-        .failsafe-icon {
-            width: 80px; height: 80px;
-            background-color: #fee2e2;
-            color: var(--danger);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 40px; font-weight: bold;
-            margin-bottom: 16px;
-        }
-
-        #failsafe-overlay h1 {
-            font-size: 32px; color: var(--text-main); font-weight: 700;
-        }
-        #failsafe-overlay p {
-            font-size: 16px; color: var(--text-muted);
-        }
 
     </style>
 </head>
 <body>
 
-    <!-- FAILSAFE -->
-    <div id="failsafe-overlay">
-        <div class="failsafe-icon">!</div>
-        <h1>Connection Lost</h1>
-        <p>Drone communication link has been severed. Attempting auto-reconnect...</p>
-    </div>
 
     <!-- HEADER -->
     <header>
@@ -553,22 +518,19 @@
             const statusVal = $('sys-status-val');
             statusVal.textContent = data.status;
 
-            const fsOverlay = $('failsafe-overlay');
             const linkBadge = $('sb-link');
             
             if (data.status.includes('FAILSAFE')) {
                 statusBadge.className = 'status-badge error';
                 if (!isFailsafe) {
-                    fsOverlay.classList.add('active');
                     isFailsafe = true;
                     linkBadge.className = 'status-badge error';
-                    linkBadge.querySelector('span').textContent = 'LINK LOST';
-                    addLog('Connection to drone lost.', 'hazard');
+                    linkBadge.querySelector('span').textContent = 'OFF-GRID AUTONOMY';
+                    addLog('Connection to drone lost. Drone operating in autonomous off-grid mode.', 'hazard');
                 }
             } else {
                 statusBadge.className = 'status-badge active';
                 if (isFailsafe) {
-                    fsOverlay.classList.remove('active');
                     isFailsafe = false;
                     linkBadge.className = 'status-badge active';
                     linkBadge.querySelector('span').textContent = 'LINK ACTIVE';
