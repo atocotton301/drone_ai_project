@@ -20,10 +20,10 @@ RAW_DIR = Path("datasets/raw_images")
 
 # 크롤링할 대상 키워드와 목표 수량 (각 30장씩 수집)
 SEARCH_QUERIES = {
-    "staircase": "apartment indoor concrete stairs",
-    "door": "closed door in apartment hallway",
-    "fire": "room on fire indoor",
-    "person": "person walking in apartment hallway"
+    "staircase": "한국 오래된 복도식 아파트 계단",
+    "door": "한국 아파트 철문 현관문",
+    "fire": "아파트 실내 화재 연기",
+    "person": "아파트 복도 걷는 사람"
 }
 TARGET_COUNT = 30
 

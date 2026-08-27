@@ -121,9 +121,6 @@ def train(epochs: int, batch: int, imgsz: int, device: str):
         save=True,
         plots=True,           # 학습 곡선 그래프 저장
         verbose=True,
-        # 실내 탐지 최적화 설정
-        hsv_h=0.015,          # 색조 증강 (화재/연기 색상 다양화)
-        hsv_s=0.7,
         hsv_v=0.4,
         flipud=0.0,           # 드론 영상 특성상 상하 반전 없음
         fliplr=0.5,
