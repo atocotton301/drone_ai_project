@@ -3,7 +3,7 @@
 # setup_jetson.sh — Jetson Orin Nano Super 원클릭 셋업 스크립트
 # =============================================================
 # [사용법]
-#   git clone https://github.com/<your-repo>/drone_ai_project.git
+#   git clone https://github.com/atocotton301/drone_ai_project.git
 #   cd drone_ai_project
 #   chmod +x jetson/setup_jetson.sh
 #   ./jetson/setup_jetson.sh

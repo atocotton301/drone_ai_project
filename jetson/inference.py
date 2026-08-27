@@ -36,6 +36,7 @@ class DroneVision:
                 detections.append({
                     'class': class_id,
                     'class_name': class_name,
+                    'confidence': conf,   # risk_analysis.py 에서 d.get('confidence') 로 읽음
                     'conf': conf,
                     'bbox': [int(x1), int(y1), int(x2), int(y2)]
                 })

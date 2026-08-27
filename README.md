@@ -6,7 +6,7 @@
 
 ### 💻 PC에서 파이프라인 검증
 ```bash
-git clone https://github.com/<your-repo>/drone_ai_project.git
+git clone https://github.com/atocotton301/drone_ai_project.git
 cd drone_ai_project
 pip install -r requirements.txt
 
@@ -16,7 +16,7 @@ python local_train.py
 
 ### 🚁 Jetson 보드에서 전체 학습 + 실행
 ```bash
-git clone https://github.com/<your-repo>/drone_ai_project.git
+git clone https://github.com/atocotton301/drone_ai_project.git
 cd drone_ai_project
 
 # 한방 셋업 (의존성 설치 → 데이터 다운로드 → 학습 → TensorRT 변환)
