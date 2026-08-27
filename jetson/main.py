@@ -33,14 +33,18 @@ GCS_SERVER_URL = "http://127.0.0.1:5001"
 def main():
     print("🚁 [DRONE SYSTEM] 초기화 중...")
     
-    # 1. 모듈 초기화
-    # 방금 훈련시킨 커스텀 모델 경로로 업데이트 (ONNX 변환본) - OS 독립적인 상대 경로 사용
+    # 1. 모듈 초기화 (우선순위: .engine -> .onnx -> .pt -> yolov8n.pt)
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    model_path = os.path.join(base_dir, 'runs', 'detect', 'custom_train', 'weights', 'best.onnx')
-    if not os.path.exists(model_path):
-        print(f"❌ 오류: 모델 파일을 찾을 수 없습니다. 경로: {model_path}")
-        return
-
+    weights_dir = os.path.join(base_dir, 'runs', 'detect', 'custom_train', 'weights')
+    
+    candidates = [
+        os.path.join(weights_dir, 'best.engine'),
+        os.path.join(weights_dir, 'best.onnx'),
+        os.path.join(weights_dir, 'best.pt'),
+        os.path.join(base_dir, 'yolov8n.pt')
+    ]
+    model_path = next((p for p in candidates if os.path.exists(p)), 'yolov8n.pt')
+    print(f"📦 [Model Load] 선택된 모델: {model_path}")
     vision = DroneVision(model_path)
     mapper = SemanticMapper(image_width=640, image_height=480)
     logger = FlightLogger()

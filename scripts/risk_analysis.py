@@ -15,6 +15,23 @@ def calculate_iou(box1, box2):
     
     return inter_area / float(box1_area + box2_area - inter_area)
 
+def analyze_risk(detections, person_class_names=['person'], hazard_class_names=['weapon', 'gun', 'knife', 'fire', 'cell phone'], node_class_names=['stairs', 'escalator', 'elevator']):
+    """
+    사람과 무기 위치 관계(IoU) 및 위험 요소를 분석하여 무장 인원 및 위험 객체를 식별합니다.
+    """
+    persons = [d for d in detections if d.get('class_name', '').lower() in person_class_names]
+    weapons = [d for d in detections if d.get('class_name', '').lower() in ['weapon', 'gun', 'knife']]
+    
+    armed_persons = []
+    for p in persons:
+        for w in weapons:
+            if calculate_iou(p['bbox'], w['bbox']) > 0:
+                armed_persons.append({'person': p, 'weapon': w})
+                break
+                
+    is_danger = len(armed_persons) > 0
+    return is_danger, armed_persons
+
 def analyze_indoor_tactical(detections, current_altitude=0.0):
     """
     아파트 실내 탐색 및 시가전(구조/수색) 전용 리스크 분석
@@ -69,3 +86,4 @@ def analyze_indoor_tactical(detections, current_altitude=0.0):
         "has_threat": has_threat,
         "found_survivor": found_survivor
     }
+

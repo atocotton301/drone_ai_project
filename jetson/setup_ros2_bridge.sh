@@ -7,7 +7,7 @@ echo " Starting ROS 2 & MicroXRCE-DDS Bridge Setup on Jetson"
 echo "=========================================================="
 
 # 1. Update and Upgrade
-sudo apt-update && sudo apt upgrade -y
+sudo apt update && sudo apt upgrade -y
 
 # 2. Install Dependencies
 echo "Installing dependencies..."

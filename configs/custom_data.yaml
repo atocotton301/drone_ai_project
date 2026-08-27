@@ -15,7 +15,7 @@
 #   - door:       Roboflow Door Detection (공개)
 #   - staircase:  Roboflow Staircase Detection (공개)
 
-path: datasets/final  # train_jetson.py / local_train.py 실행 시 절대경로로 자동 패치됨
+path: /home/chow/drone_ai_project/datasets/final
 train: images/train
 val:   images/val
 

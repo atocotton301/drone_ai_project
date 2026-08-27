@@ -46,9 +46,18 @@ def main():
     # 로컬 강제 종료 명령(SIGINT)을 처리하기 위한 설정
     signal.signal(signal.SIGINT, signal_handler)
 
-    # 1. 딥러닝 모델 로드 (추후 .engine 파일로 변경 필수)
+    # 1. 딥러닝 모델 로드 (우선순위: .engine -> .onnx -> .pt -> yolov8n.pt)
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    model_path = os.path.join(base_dir, 'runs', 'detect', 'custom_train', 'weights', 'best.onnx')
+    weights_dir = os.path.join(base_dir, 'runs', 'detect', 'custom_train', 'weights')
+    
+    candidates = [
+        os.path.join(weights_dir, 'best.engine'),
+        os.path.join(weights_dir, 'best.onnx'),
+        os.path.join(weights_dir, 'best.pt'),
+        os.path.join(base_dir, 'yolov8n.pt')
+    ]
+    model_path = next((p for p in candidates if os.path.exists(p)), 'yolov8n.pt')
+    print(f"📦 [Model Load] 선택된 모델: {model_path}")
     vision = DroneVision(model_path)
     
     # 다층 아파트 실내 지도 초기화

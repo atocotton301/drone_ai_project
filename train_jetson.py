@@ -34,21 +34,45 @@ TRAIN_RUN_NAME = "custom_train"
 
 
 def check_dataset():
-    """datasets/final 폴더에 이미지가 있는지 확인. 없으면 다운로드 실행."""
+    """datasets/final 폴더에 이미지가 있는지 확인. 없으면 다운로드 및 라벨링 실행."""
     train_img_dir = DATASET_FINAL / "images" / "train"
+    raw_img_dir = BASE_DIR / "datasets" / "raw_images"
+    
     if not train_img_dir.exists() or not any(train_img_dir.iterdir()):
-        print("⚠  datasets/final 폴더가 비어있습니다. 데이터셋을 자동으로 다운로드합니다...")
-        result = subprocess.run(
-            [sys.executable, str(BASE_DIR / "scripts" / "download_dataset.py")],
-            cwd=BASE_DIR
-        )
-        if result.returncode != 0:
-            print("❌ 데이터셋 다운로드 실패! 수동으로 실행하세요:")
-            print("   python scripts/download_dataset.py")
-            sys.exit(1)
+        print("⚠  datasets/final 폴더가 비어있습니다. 데이터셋 파이프라인을 가동합니다...")
+        
+        # 1. raw_images 확인 및 크롤링
+        has_raw = raw_img_dir.exists() and any(raw_img_dir.glob("*/*.jpg")) or any(raw_img_dir.glob("*/*.png"))
+        if not has_raw:
+            print("  [1/2] 원천 이미지 크롤링 실행 중...")
+            download_script = BASE_DIR / "scripts" / "download_dataset.py"
+            if download_script.exists():
+                subprocess.run([sys.executable, str(download_script)], cwd=BASE_DIR)
+        
+        # 2. auto_label 실행
+        print("  [2/2] Auto-Labeling 및 train/val 분할 실행 중...")
+        auto_label_script = BASE_DIR / "scripts" / "auto_label.py"
+        if auto_label_script.exists():
+            res = subprocess.run([sys.executable, str(auto_label_script)], cwd=BASE_DIR)
+            if res.returncode != 0:
+                print("⚠  Auto-Labeling 실패. fallback을 시도합니다.")
+        
+        # 3. 최종 확인 (실패 시 sample 데이터셋 활용)
+        if not train_img_dir.exists() or not any(train_img_dir.iterdir()):
+            sample_yaml = BASE_DIR / "datasets" / "sample" / "data.yaml"
+            if sample_yaml.exists():
+                print("ℹ  Sample 데이터셋으로 대체합니다.")
+                global DATASET_YAML
+                DATASET_YAML = sample_yaml
+            else:
+                print("❌ 학습 데이터셋 생성 실패! 수동으로 확인해주세요.")
+                sys.exit(1)
+        else:
+            img_count = len(list(train_img_dir.glob("*")))
+            print(f"✓ 데이터셋 구축 완료: Train 이미지 {img_count}장")
     else:
         img_count = len(list(train_img_dir.glob("*")))
-        print(f"✓ 데이터셋 확인 완료: Train 이미지 {img_count}장")
+        print(f"✓ 기존 데이터셋 확인 완료: Train 이미지 {img_count}장")
 
 
 def patch_dataset_yaml():

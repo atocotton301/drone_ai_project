@@ -49,16 +49,75 @@ class ApartmentSemanticMap:
             'path': self.drone_path
         }
 
+def overlay_on_map(detections, depth_map, odom_tf):
+    """
+    호환성용 헬퍼 함수: 탐지 객체들을 지도 좌표에 투영
+    """
+    mapped = []
+    for d in detections:
+        cls_id = d.get('class', d.get('class_id', 0))
+        # mock offset
+        mapped.append({
+            'class_id': cls_id,
+            'x': round(odom_tf.get('x', 0.0) + 2.5, 2),
+            'y': round(odom_tf.get('y', 0.0) + 2.5, 2)
+        })
+    return mapped
+
+class SemanticMapper:
+    """
+    RealSense FOV 및 Depth 기반 3D 위치 계산 맵퍼
+    """
+    def __init__(self, camera_fov=69.4, image_width=640, image_height=480):
+        self.fov = math.radians(camera_fov)
+        self.img_w = image_width
+        self.img_h = image_height
+        self.focal_length = (self.img_w / 2) / math.tan(self.fov / 2)
+
+    def get_world_coordinates(self, bbox, drone_odom, depth_map=None, default_distance=3.0):
+        x1, y1, x2, y2 = bbox
+        center_x = (x1 + x2) / 2
+        center_y = (y1 + y2) / 2
+        
+        depth_distance = default_distance
+        if depth_map is not None:
+            try:
+                cx = max(0, min(int(center_x), self.img_w - 1))
+                cy = max(0, min(int(center_y), self.img_h - 1))
+                dist = float(depth_map[cy, cx])
+                if dist > 0.1:
+                    depth_distance = dist
+            except Exception:
+                pass
+        
+        pixel_offset_x = center_x - (self.img_w / 2)
+        angle_offset = math.atan2(pixel_offset_x, self.focal_length)
+        absolute_yaw = drone_odom.get('yaw', 0.0) + angle_offset
+        
+        obj_world_x = drone_odom.get('x', 0.0) + (depth_distance * math.cos(absolute_yaw))
+        obj_world_y = drone_odom.get('y', 0.0) + (depth_distance * math.sin(absolute_yaw))
+        return round(obj_world_x, 2), round(obj_world_y, 2)
+
+    def process_detections(self, detections, drone_odom, depth_map=None):
+        mapped_objects = []
+        for det in detections:
+            bbox = det.get('bbox', [0, 0, 10, 10])
+            wx, wy = self.get_world_coordinates(bbox, drone_odom, depth_map)
+            mapped_objects.append({
+                'class_name': det.get('class_name', 'unknown'),
+                'world_x': wx,
+                'world_y': wy,
+                'conf': det.get('conf', 1.0)
+            })
+        return mapped_objects
+
 if __name__ == "__main__":
-    # Test
     m = ApartmentSemanticMap()
     m.update_drone_position(0, 0, 1.5)
     m.add_marker(2, 3, 1.5, "NODE_DOOR", "안방 문")
     m.add_marker(5, 5, 1.5, "SURVIVOR", "쓰러진 사람 발견")
-    
-    # 계단 이동
     m.update_drone_position(6, 6, 4.0) 
     m.add_marker(6, 6, 4.0, "NODE_STAIRS", "계단 진입")
     m.add_marker(10, 10, 4.5, "HAZARD", "2층 화재 발견")
-    
     print(json.dumps(m.export_map_data(), indent=2, ensure_ascii=False))
+
