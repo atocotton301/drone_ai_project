@@ -3,558 +3,513 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TACTICAL DRONE GCS — INDOOR RESCUE AI</title>
+    <title>Indoor Spatial Mapping & Recon System</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
         :root {
-            --cyan:    #00f5ff;
-            --green:   #00ff88;
-            --red:     #ff2d2d;
-            --yellow:  #ffd600;
-            --bg:      #020608;
-            --panel:   rgba(0, 20, 30, 0.85);
-            --border:  rgba(0, 245, 255, 0.25);
+            --primary: #1e3a8a;       /* Deep Blue */
+            --primary-light: #3b82f6; /* Bright Blue */
+            --bg-color: #f3f4f6;      /* Light Gray */
+            --panel-bg: #ffffff;      /* White */
+            --text-main: #1f2937;     /* Dark Gray */
+            --text-muted: #6b7280;    /* Medium Gray */
+            --border-color: #e5e7eb;  /* Light Gray Border */
+            --success: #10b981;       /* Green */
+            --danger: #ef4444;        /* Red */
+            --warning: #f59e0b;       /* Yellow */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
         }
 
         body {
-            background: var(--bg);
-            color: var(--cyan);
-            font-family: 'Share Tech Mono', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-main);
             height: 100vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
-            display: grid;
-            grid-template-rows: 48px 1fr 36px;
-            grid-template-columns: 1fr;
         }
 
-        /* ── SCAN LINE EFFECT ── */
-        body::after {
-            content: '';
-            position: fixed; inset: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                rgba(0,0,0,0.04) 0px,
-                rgba(0,0,0,0.04) 1px,
-                transparent 1px,
-                transparent 3px
-            );
-            pointer-events: none;
-            z-index: 9000;
-        }
-
-        /* ══════════════ TOPBAR ══════════════ */
-        #topbar {
+        /* ── HEADER ── */
+        header {
+            background-color: var(--panel-bg);
+            height: 60px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
-            background: rgba(0,5,10,0.95);
-            border-bottom: 1px solid var(--border);
-            position: relative;
-            z-index: 100;
-        }
-        #topbar::before {
-            content: '';
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-            opacity: 0.6;
+            padding: 0 24px;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            z-index: 10;
         }
 
-        .title-block { display: flex; align-items: center; gap: 14px; }
-        .title-block .logo {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.05rem;
-            font-weight: 900;
-            letter-spacing: 4px;
-            color: var(--cyan);
-            text-shadow: 0 0 12px var(--cyan);
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        .title-block .subtitle {
-            font-size: 0.65rem;
-            color: rgba(0,245,255,0.5);
-            letter-spacing: 2px;
-        }
-        .divider { width: 1px; height: 28px; background: var(--border); }
-
-        .top-stat { text-align: center; }
-        .top-stat .lbl { font-size: 0.55rem; color: rgba(255,255,255,0.35); letter-spacing: 1px; }
-        .top-stat .val {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.8rem;
+        
+        .brand-logo {
+            width: 32px;
+            height: 32px;
+            background-color: var(--primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
             font-weight: 700;
+            font-size: 18px;
         }
 
-        #sys-status-val { color: var(--green); }
-        .rec-ring {
-            display: inline-block;
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: var(--red);
-            box-shadow: 0 0 8px var(--red);
-            animation: blink 1.2s infinite;
-            vertical-align: middle;
-            margin-right: 6px;
+        .brand-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: -0.5px;
         }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+        
+        .brand-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
 
-        .top-right { display: flex; align-items: center; gap: 18px; }
-        .upload-btn {
-            background: transparent;
-            border: 1px solid rgba(0,245,255,0.4);
-            color: var(--cyan);
-            padding: 4px 14px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.7rem;
-            letter-spacing: 1px;
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            background-color: #f3f4f6;
+            color: var(--text-muted);
+        }
+        .status-badge.active { background-color: #d1fae5; color: #047857; }
+        .status-badge.error { background-color: #fee2e2; color: #b91c1c; }
+        
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%; background-color: currentColor;
+        }
+
+        .btn-upload {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
-        .upload-btn:hover {
-            background: rgba(0,245,255,0.12);
-            border-color: var(--cyan);
-            box-shadow: 0 0 14px rgba(0,245,255,0.3);
+        .btn-upload:hover {
+            border-color: var(--primary-light);
+            color: var(--primary-light);
+            background-color: #f8fafc;
         }
 
-        #clock { font-size: 0.85rem; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
-
-        /* ══════════════ MAIN GRID ══════════════ */
-        #main {
+        /* ── MAIN LAYOUT ── */
+        main {
+            flex: 1;
             display: grid;
-            grid-template-columns: 1fr 340px;
-            gap: 0;
+            grid-template-columns: 280px 1fr 1fr;
+            gap: 16px;
+            padding: 16px;
             overflow: hidden;
         }
 
-        /* ── LEFT: VIDEO + OVERLAY ── */
-        #vision-panel {
+        .panel {
+            background-color: var(--panel-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: #f9fafb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .panel-content {
+            flex: 1;
             position: relative;
-            background: #000;
             overflow: hidden;
-            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
         }
 
+        /* ── LEFT PANEL (TELEMETRY & LOGS) ── */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tel-card {
+            background-color: #f9fafb;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tel-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .tel-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .log-container {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .log-item {
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #f3f4f6;
+            font-size: 12px;
+            border-left: 3px solid var(--border-color);
+            line-height: 1.4;
+        }
+        .log-item.event { background-color: #fef3c7; border-left-color: var(--warning); color: #92400e; }
+        .log-item.survivor { background-color: #d1fae5; border-left-color: var(--success); color: #065f46; }
+        .log-item.hazard { background-color: #fee2e2; border-left-color: var(--danger); color: #991b1b; }
+        .log-time {
+            font-size: 10px; color: var(--text-muted); margin-bottom: 2px; font-weight: 600;
+        }
+
+        /* ── CENTER PANEL (LIVE CAMERA) ── */
+        .camera-container {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
         #camera-feed {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            display: block;
         }
 
-        /* Corner brackets */
-        .corner { position: absolute; width: 24px; height: 24px; pointer-events: none; }
-        .corner.tl { top: 16px; left: 16px; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
-        .corner.tr { top: 16px; right: 16px; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
-        .corner.bl { bottom: 16px; left: 16px; border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
-        .corner.br { bottom: 16px; right: 16px; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
-
-        /* HUD: top-left */
-        #hud-tl {
-            position: absolute; top: 24px; left: 24px;
-            pointer-events: none;
-        }
-        .hud-line {
-            font-size: 0.72rem;
-            line-height: 1.7;
-            text-shadow: 0 0 6px currentColor;
-        }
-        .hud-line.green { color: var(--green); }
-        .hud-line.cyan  { color: var(--cyan); }
-        .hud-line.yellow { color: var(--yellow); }
-
-        /* HUD: top-right */
-        #hud-tr {
-            position: absolute; top: 24px; right: 24px;
-            text-align: right;
-            pointer-events: none;
-        }
-
-        /* CENTER CROSSHAIR */
-        #crosshair {
+        .overlay-tags {
             position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-        }
-        .ch-ring {
-            width: 48px; height: 48px;
-            border: 1px solid rgba(0,245,255,0.35);
-            border-radius: 50%;
-            position: relative;
-        }
-        .ch-ring::before, .ch-ring::after {
-            content: '';
-            position: absolute;
-            background: rgba(0,245,255,0.4);
-        }
-        .ch-ring::before { top: 50%; left: -10px; right: -10px; height: 1px; transform: translateY(-50%); }
-        .ch-ring::after  { left: 50%; top: -10px; bottom: -10px; width: 1px; transform: translateX(-50%); }
-
-        /* Alert strip */
-        #alert-strip {
-            position: absolute;
-            bottom: 20px; left: 20px; right: 20px;
-            display: flex;
-            flex-direction: column-reverse;
-            gap: 6px;
-            pointer-events: none;
-        }
-        .alert-item {
-            background: rgba(255,45,45,0.15);
-            border: 1px solid var(--red);
-            border-left: 3px solid var(--red);
-            padding: 6px 12px;
-            font-size: 0.68rem;
-            color: #fff;
-            clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-            animation: slide-in 0.25s ease;
-            letter-spacing: 0.5px;
-        }
-        .alert-item.survivor {
-            border-color: var(--green);
-            border-left-color: var(--green);
-            background: rgba(0,255,136,0.1);
-            clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
-        }
-        @keyframes slide-in {
-            from { transform: translateX(-16px); opacity: 0; }
-            to   { transform: translateX(0); opacity: 1; }
-        }
-
-        /* MODE badge bottom-right */
-        #mode-badge {
-            position: absolute;
-            bottom: 24px; right: 24px;
-            text-align: right;
-            pointer-events: none;
-        }
-        .mode-line { font-size: 0.7rem; line-height: 1.8; }
-
-        /* ── RIGHT PANEL ── */
-        #right-panel {
-            display: grid;
-            grid-template-rows: 1fr 1fr;
-            overflow: hidden;
-        }
-
-        /* MAP */
-        #map-panel {
-            position: relative;
-            background: #010d08;
-            border-bottom: 1px solid var(--border);
-            overflow: hidden;
-        }
-        #map-panel::before {
-            content: '';
-            position: absolute; inset: 0;
-            background:
-                linear-gradient(rgba(0,255,136,0.06) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,255,136,0.06) 1px, transparent 1px);
-            background-size: 30px 30px;
-        }
-        .map-label {
-            position: absolute; top: 10px; left: 12px;
-            font-size: 0.6rem; letter-spacing: 2px; color: var(--green);
-            opacity: 0.7;
-        }
-        #layer-badge {
-            position: absolute; top: 8px; right: 12px;
-            background: var(--green);
-            color: #000;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.65rem; font-weight: 900;
-            padding: 2px 8px;
-            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
-        }
-        #map-viewport {
-            position: absolute; inset: 32px 0 0 0;
-            overflow: hidden;
-        }
-        #drone-icon {
-            position: absolute;
-            width: 0; height: 0;
-            border-left: 9px solid transparent;
-            border-right: 9px solid transparent;
-            border-bottom: 18px solid var(--green);
-            transform: translate(-50%, -50%);
-            filter: drop-shadow(0 0 8px var(--green));
-            transition: left 0.3s ease, top 0.3s ease;
-            z-index: 10;
-        }
-        #trajectory-layer { position: absolute; inset: 0; }
-        .traj-dot {
-            position: absolute;
-            width: 3px; height: 3px;
-            background: rgba(0,255,136,0.45);
-            border-radius: 50%;
-            transform: translate(-50%,-50%);
-        }
-        .threat-mk {
-            position: absolute;
-            width: 12px; height: 12px;
-            background: var(--red);
-            border-radius: 50%;
-            transform: translate(-50%,-50%);
-            box-shadow: 0 0 12px var(--red);
-            animation: blink 1s infinite;
-            z-index: 5;
-        }
-        .survivor-mk {
-            position: absolute;
-            width: 12px; height: 12px;
-            background: var(--green);
-            border-radius: 50%;
-            transform: translate(-50%,-50%);
-            box-shadow: 0 0 12px var(--green);
-            animation: blink 1.5s infinite;
-            z-index: 5;
-        }
-
-        /* TELEMETRY PANEL */
-        #tel-panel {
-            padding: 14px 16px;
+            top: 16px; left: 16px;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            overflow: hidden;
+            pointer-events: none;
         }
-        .tel-title {
-            font-size: 0.55rem;
-            letter-spacing: 3px;
-            color: rgba(0,245,255,0.4);
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 6px;
-            margin-bottom: 2px;
+        
+        .overlay-tag {
+            background-color: rgba(0,0,0,0.6);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            backdrop-filter: blur(4px);
         }
-        .tel-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-        }
-        .tel-lbl { font-size: 0.62rem; color: rgba(255,255,255,0.3); letter-spacing: 1px; }
-        .tel-val {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 0.85rem;
-            font-weight: 700;
-        }
-        .tel-val.cyan   { color: var(--cyan);   text-shadow: 0 0 8px var(--cyan); }
-        .tel-val.green  { color: var(--green);  text-shadow: 0 0 8px var(--green); }
-        .tel-val.yellow { color: var(--yellow); text-shadow: 0 0 8px var(--yellow); }
-        .tel-val.red    { color: var(--red);    text-shadow: 0 0 8px var(--red); }
 
-        /* progress bar */
-        .bar-row { display: flex; flex-direction: column; gap: 3px; }
-        .bar-track {
-            height: 4px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 2px;
-            overflow: hidden;
+        #alert-strip {
+            position: absolute;
+            bottom: 16px; left: 16px; right: 16px;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            pointer-events: none;
         }
-        .bar-fill {
+
+        .alert-toast {
+            background-color: var(--danger);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .alert-toast.survivor {
+            background-color: var(--success);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* ── RIGHT PANEL (2D MAP) ── */
+        .map-container {
+            width: 100%;
             height: 100%;
-            border-radius: 2px;
-            transition: width 0.4s ease;
+            background-color: #e5e7eb;
+            position: relative;
+            overflow: hidden;
+            background-image: 
+                linear-gradient(#d1d5db 1px, transparent 1px),
+                linear-gradient(90deg, #d1d5db 1px, transparent 1px);
+            background-size: 20px 20px;
         }
 
-        /* ══════════════ STATUSBAR ══════════════ */
-        #statusbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            background: rgba(0,5,10,0.95);
-            border-top: 1px solid var(--border);
-            font-size: 0.6rem;
-            letter-spacing: 1px;
-            color: rgba(0,245,255,0.45);
+        #slam-map-feed {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            z-index: 1;
+            /* Invert map colors for clean look if map is black/white */
+            filter: grayscale(100%) contrast(1.2) brightness(1.1);
+            mix-blend-mode: multiply;
         }
-        #statusbar span { display: flex; align-items: center; gap: 8px; }
 
-        /* ══════════════ FAILSAFE OVERLAY ══════════════ */
+        #trajectory-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        #drone-icon {
+            position: absolute;
+            width: 14px; height: 14px;
+            background-color: var(--primary-light);
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .traj-dot {
+            position: absolute;
+            width: 4px; height: 4px;
+            background: var(--primary-light);
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+            opacity: 0.5;
+        }
+
+        .threat-mk {
+            position: absolute;
+            width: 12px; height: 12px;
+            background: var(--danger);
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 6;
+        }
+
+        .survivor-mk {
+            position: absolute;
+            width: 12px; height: 12px;
+            background: var(--success);
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 6;
+        }
+
+        #layer-badge {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* ── FAILSAFE OVERLAY ── */
         #failsafe-overlay {
             position: fixed; inset: 0;
-            background: rgba(30,0,0,0.92);
-            backdrop-filter: blur(12px);
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(8px);
             z-index: 9999;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center; gap: 16px;
             opacity: 0; pointer-events: none;
-            transition: opacity 0.4s;
+            transition: opacity 0.3s;
         }
-        #failsafe-overlay.active { opacity: 1; pointer-events: all; animation: fs-pulse 2s infinite; }
-        #failsafe-overlay h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: clamp(2rem, 6vw, 5rem);
-            color: var(--red);
-            text-shadow: 0 0 40px var(--red);
-            letter-spacing: 6px;
-        }
-        #failsafe-overlay p {
-            font-size: 1rem; color: rgba(255,255,255,0.7); letter-spacing: 3px;
-        }
-        @keyframes fs-pulse {
-            0%,100% { box-shadow: inset 0 0 0 0px rgba(255,0,0,0); }
-            50%      { box-shadow: inset 0 0 60px 10px rgba(255,0,0,0.25); }
+        #failsafe-overlay.active { opacity: 1; pointer-events: all; }
+        
+        .failsafe-icon {
+            width: 80px; height: 80px;
+            background-color: #fee2e2;
+            color: var(--danger);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 40px; font-weight: bold;
+            margin-bottom: 16px;
         }
 
-        /* Scrollable log */
-        #log-wrap {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
+        #failsafe-overlay h1 {
+            font-size: 32px; color: var(--text-main); font-weight: 700;
         }
-        #log-wrap::-webkit-scrollbar { width: 3px; }
-        #log-wrap::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.2); }
-        .log-entry {
-            font-size: 0.6rem;
-            color: rgba(255,255,255,0.35);
-            border-left: 2px solid rgba(0,245,255,0.15);
-            padding: 1px 6px;
-            line-height: 1.4;
+        #failsafe-overlay p {
+            font-size: 16px; color: var(--text-muted);
         }
-        .log-entry.event { color: var(--yellow); border-left-color: var(--yellow); }
-        .log-entry.survivor { color: var(--green); border-left-color: var(--green); }
-        .log-entry.hazard { color: var(--red); border-left-color: var(--red); }
+
     </style>
 </head>
 <body>
 
     <!-- FAILSAFE -->
     <div id="failsafe-overlay">
-        <h1>CRITICAL FAILSAFE</h1>
-        <p>LINK LOST — INITIATING AUTO RETURN</p>
+        <div class="failsafe-icon">!</div>
+        <h1>Connection Lost</h1>
+        <p>Drone communication link has been severed. Attempting auto-reconnect...</p>
     </div>
 
-    <!-- TOPBAR -->
-    <div id="topbar">
-        <div class="title-block">
+    <!-- HEADER -->
+    <header>
+        <div class="brand">
+            <div class="brand-logo">AI</div>
             <div>
-                <div class="logo">TACTICAL GCS</div>
-                <div class="subtitle">INDOOR RESCUE &amp; RECON SYSTEM · GPS-DENIED MODE</div>
-            </div>
-            <div class="divider"></div>
-            <div class="top-stat">
-                <div class="lbl">SYS STATUS</div>
-                <div class="val" id="sys-status-val">STANDBY</div>
-            </div>
-            <div class="divider"></div>
-            <div class="top-stat">
-                <div class="lbl">AI ENGINE</div>
-                <div class="val" style="color:var(--green);">YOLOv8n · TRT</div>
-            </div>
-            <div class="divider"></div>
-            <div class="top-stat">
-                <div class="lbl">NAV MODE</div>
-                <div class="val" style="color:var(--yellow);">OPTICAL FLOW</div>
+                <div class="brand-title">Indoor Spatial Mapping System</div>
+                <div class="brand-subtitle">Autonomous Reconnaissance & BIM Generation</div>
             </div>
         </div>
-        <div class="top-right">
-            <div id="clock">--:--:--</div>
-            <div class="divider"></div>
+        
+        <div class="header-controls">
+            <div id="sys-status-badge" class="status-badge">
+                <div class="status-dot"></div>
+                <span id="sys-status-val">STANDBY</span>
+            </div>
+            <div id="sb-link" class="status-badge active">
+                <div class="status-dot"></div>
+                <span>LINK ACTIVE</span>
+            </div>
+            
             <input type="file" id="log-file-input" accept=".csv" style="display:none" onchange="uploadLogFile(event)">
-            <button class="upload-btn" onclick="document.getElementById('log-file-input').click()">▶ LOAD BLACKBOX</button>
+            <button class="btn-upload" onclick="document.getElementById('log-file-input').click()">Load Data Log</button>
         </div>
-    </div>
+    </header>
 
     <!-- MAIN -->
-    <div id="main">
-
-        <!-- LEFT: VISION FEED -->
-        <div id="vision-panel">
-            <img src="/video_feed" id="camera-feed" alt="AI Vision">
-
-            <!-- corner brackets -->
-            <div class="corner tl"></div>
-            <div class="corner tr"></div>
-            <div class="corner bl"></div>
-            <div class="corner br"></div>
-
-            <!-- HUD top-left -->
-            <div id="hud-tl">
-                <div class="hud-line cyan"><span class="rec-ring"></span>AI VISION · LIVE</div>
-                <div class="hud-line green" id="hud-mode">MODE: OFFBOARD</div>
-                <div class="hud-line cyan" id="hud-pos">POS: X=0.0m Y=0.0m</div>
-                <div class="hud-line yellow" id="hud-alt">ALT: 0.0m AGL</div>
+    <main>
+        <!-- LEFT: INFO & LOGS -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">System Telemetry</div>
             </div>
-
-            <!-- HUD top-right -->
-            <div id="hud-tr">
-                <div class="hud-line cyan">GPS: <span style="color:var(--red)">DENIED</span></div>
-                <div class="hud-line cyan">NAV: <span style="color:var(--green)">OPT.FLOW</span></div>
-                <div class="hud-line cyan">NET: <span style="color:var(--red)">OFFLINE</span></div>
-            </div>
-
-            <!-- crosshair -->
-            <div id="crosshair"><div class="ch-ring"></div></div>
-
-            <!-- alerts -->
-            <div id="alert-strip"></div>
-
-            <!-- bottom-right mode -->
-            <div id="mode-badge">
-                <div class="mode-line" style="color:var(--cyan)">MODE: LOITER / REC <span class="rec-ring"></span></div>
-                <div class="mode-line" style="color:rgba(255,255,255,0.4)">GAIN: N/A</div>
-                <div class="mode-line" style="color:var(--green)">[AI ENABLED]</div>
+            <div class="panel-content">
+                <div class="telemetry-grid">
+                    <div class="tel-card">
+                        <div class="tel-label">Altitude (Z)</div>
+                        <div class="tel-value"><span id="t-alt">0.0</span> m</div>
+                    </div>
+                    <div class="tel-card">
+                        <div class="tel-label">Position X</div>
+                        <div class="tel-value"><span id="t-x">0.0</span> m</div>
+                    </div>
+                    <div class="tel-card">
+                        <div class="tel-label">Position Y</div>
+                        <div class="tel-value"><span id="t-y">0.0</span> m</div>
+                    </div>
+                    <div class="tel-card">
+                        <div class="tel-label">Targets Found</div>
+                        <div class="tel-value" id="sb-targets">0</div>
+                    </div>
+                </div>
+                
+                <div class="panel-header" style="border-top: 1px solid var(--border-color);">
+                    <div class="panel-title">Event Log</div>
+                </div>
+                <div class="log-container" id="log-wrap">
+                    <!-- Logs injected here -->
+                </div>
             </div>
         </div>
 
-        <!-- RIGHT PANEL -->
-        <div id="right-panel">
-
-            <!-- MAP -->
-            <div id="map-panel">
-                <div class="map-label">3D SLAM MAP · OFF-GRID</div>
-                <div id="layer-badge">LAYER: 1F</div>
-                <div id="map-viewport">
-                    <img src="/map_feed" id="slam-map-feed" style="position: absolute; width: 100%; height: 100%; object-fit: contain; z-index: 1; opacity: 0.85;">
-                    <div id="trajectory-layer" style="z-index: 5;"></div>
-                    <div id="drone-icon" style="left:50%;top:50%; z-index: 10;"></div>
+        <!-- CENTER: CAMERA FEED -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Real-time Vision Feed</div>
+                <div class="status-badge" style="background:transparent; border:1px solid var(--border-color)">
+                    YOLOv8 AI Engine
                 </div>
             </div>
-
-            <!-- TELEMETRY -->
-            <div id="tel-panel">
-                <div class="tel-title">// TELEMETRY · ONBOARD</div>
-
-                <div class="tel-row">
-                    <span class="tel-lbl">FLIGHT MODE</span>
-                    <span class="tel-val cyan" id="t-mode">OFFBOARD</span>
+            <div class="panel-content">
+                <div class="camera-container">
+                    <img src="/video_feed" id="camera-feed" alt="Camera Feed Offline">
+                    
+                    <div class="overlay-tags">
+                        <div class="overlay-tag" id="hud-mode">MODE: OFFBOARD</div>
+                        <div class="overlay-tag" id="hud-pos">POS: 0.0, 0.0</div>
+                    </div>
+                    
+                    <div id="alert-strip"></div>
                 </div>
-                <div class="tel-row">
-                    <span class="tel-lbl">ALTITUDE</span>
-                    <span class="tel-val green"><span id="t-alt">0.0</span> m</span>
-                </div>
-                <div class="tel-row">
-                    <span class="tel-lbl">POSITION X</span>
-                    <span class="tel-val cyan"><span id="t-x">0.0</span> m</span>
-                </div>
-                <div class="tel-row">
-                    <span class="tel-lbl">POSITION Y</span>
-                    <span class="tel-val cyan"><span id="t-y">0.0</span> m</span>
-                </div>
-
-                <div class="tel-title" style="margin-top:4px">// MISSION LOG</div>
-                <div id="log-wrap"></div>
             </div>
-
         </div>
-    </div>
 
-    <!-- STATUSBAR -->
-    <div id="statusbar">
-        <span>JETSON ORIN NANO SUPER · YOLOv8n TensorRT · RealSense D435i</span>
-        <span id="sb-targets">TGT: 0 · WP: 0/0</span>
-        <span id="sb-link" style="color:var(--green)">LINK: ACTIVE</span>
-    </div>
+        <!-- RIGHT: 2D MAP -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">Generated 2D Floor Plan</div>
+                <div id="layer-badge">Level 1F</div>
+            </div>
+            <div class="panel-content">
+                <div class="map-container">
+                    <img src="/map_feed" id="slam-map-feed" alt="Map generation pending...">
+                    <div id="trajectory-layer"></div>
+                    <div id="drone-icon" style="left:50%;top:50%"></div>
+                </div>
+            </div>
+        </div>
+    </main>
 
 <script>
     const $ = id => document.getElementById(id);
@@ -563,54 +518,61 @@
     let isFailsafe = false;
     let targetCount = 0;
 
-    // Clock
-    setInterval(() => {
-        $('clock').textContent = new Date().toLocaleTimeString('en-US', {hour12:false});
-    }, 1000);
-
     function calcFloor(z) {
         return z >= 0 ? Math.floor(z / 3) + 1 : Math.floor(z / 3);
     }
     function fmtFloor(n) {
-        return n > 0 ? `${n}F` : n < 0 ? `B${Math.abs(n)}` : 'GND';
+        return n > 0 ? `Level ${n}F` : n < 0 ? `Level B${Math.abs(n)}` : 'Ground';
     }
 
     function addLog(text, type='') {
         const el = document.createElement('div');
-        el.className = 'log-entry ' + type;
-        const ts = new Date().toLocaleTimeString('en-US',{hour12:false});
-        el.textContent = `[${ts}] ${text}`;
+        el.className = 'log-item ' + type;
+        
+        const timeEl = document.createElement('div');
+        timeEl.className = 'log-time';
+        timeEl.textContent = new Date().toLocaleTimeString('en-US',{hour12:false});
+        
+        const textEl = document.createElement('div');
+        textEl.textContent = text;
+        
+        el.appendChild(timeEl);
+        el.appendChild(textEl);
+        
         const wrap = $('log-wrap');
         wrap.prepend(el);
-        if (wrap.children.length > 40) wrap.lastChild.remove();
+        if (wrap.children.length > 50) wrap.lastChild.remove();
     }
 
     async function fetchState() {
         try {
             const data = await fetch('/api/state').then(r => r.json());
 
-            // Status
-            const statusEl = $('sys-status-val');
-            statusEl.textContent = data.status;
-            $('t-mode').textContent = data.status;
+            // Status Badge
+            const statusBadge = $('sys-status-badge');
+            const statusVal = $('sys-status-val');
+            statusVal.textContent = data.status;
 
             const fsOverlay = $('failsafe-overlay');
+            const linkBadge = $('sb-link');
+            
             if (data.status.includes('FAILSAFE')) {
-                statusEl.style.color = 'var(--red)';
+                statusBadge.className = 'status-badge error';
                 if (!isFailsafe) {
                     fsOverlay.classList.add('active');
                     isFailsafe = true;
-                    $('sb-link').textContent = 'LINK: LOST';
-                    $('sb-link').style.color = 'var(--red)';
-                    addLog('CRITICAL FAILSAFE — COMMS LOST', 'hazard');
+                    linkBadge.className = 'status-badge error';
+                    linkBadge.querySelector('span').textContent = 'LINK LOST';
+                    addLog('Connection to drone lost.', 'hazard');
                 }
             } else {
-                statusEl.style.color = 'var(--green)';
+                statusBadge.className = 'status-badge active';
                 if (isFailsafe) {
                     fsOverlay.classList.remove('active');
                     isFailsafe = false;
-                    $('sb-link').textContent = 'LINK: ACTIVE';
-                    $('sb-link').style.color = 'var(--green)';
+                    linkBadge.className = 'status-badge active';
+                    linkBadge.querySelector('span').textContent = 'LINK ACTIVE';
+                    addLog('Connection restored.', 'success');
                 }
             }
 
@@ -620,21 +582,19 @@
             $('t-x').textContent   = x.toFixed(1);
             $('t-y').textContent   = y.toFixed(1);
 
-            // HUD update
             $('hud-mode').textContent = `MODE: ${data.status}`;
-            $('hud-pos').textContent  = `POS: X=${x.toFixed(1)}m Y=${y.toFixed(1)}m`;
-            $('hud-alt').textContent  = `ALT: ${z.toFixed(1)}m AGL`;
+            $('hud-pos').textContent  = `X: ${x.toFixed(1)}m | Y: ${y.toFixed(1)}m`;
 
             // Floor
             const newFloor = calcFloor(z);
             if (newFloor !== currentFloor) {
                 currentFloor = newFloor;
-                $('layer-badge').textContent = `LAYER: ${fmtFloor(currentFloor)}`;
+                $('layer-badge').textContent = fmtFloor(currentFloor);
                 $('trajectory-layer').innerHTML = '';
-                addLog(`ELEVATION SHIFT → ${fmtFloor(currentFloor)}`, 'event');
+                addLog(`Drone moved to ${fmtFloor(currentFloor)}`, 'event');
             }
 
-            // Map drone position (1m = 3%)
+            // Map drone position (Mapping center 50%, 1m = 3% scale for demo)
             const px = 50 + x * 3;
             const py = 50 - y * 3;
             const drone = $('drone-icon');
@@ -661,14 +621,14 @@
 
                 data.alerts.forEach((txt, i) => {
                     const el = document.createElement('div');
-                    const isSurvivor = txt.includes('생존자');
-                    el.className = 'alert-item' + (isSurvivor ? ' survivor' : '');
+                    const isSurvivor = txt.includes('생존자') || txt.includes('SURVIVOR');
+                    el.className = 'alert-toast' + (isSurvivor ? ' survivor' : '');
                     el.textContent = txt;
                     alertStrip.appendChild(el);
 
                     if (i === 0 && data.alerts.length > prev) {
                         targetCount++;
-                        $('sb-targets').textContent = `TGT: ${targetCount} · WP: ${targetCount}/10`;
+                        $('sb-targets').textContent = targetCount;
 
                         const mk = document.createElement('div');
                         mk.className = isSurvivor ? 'survivor-mk' : 'threat-mk';
@@ -694,15 +654,16 @@
         $('trajectory-layer').innerHTML = '';
         $('alert-strip').innerHTML = '';
         targetCount = 0;
+        $('sb-targets').textContent = '0';
         try {
             const r = await fetch('/api/upload_log', {method:'POST', body:fd});
             const j = await r.json();
-            if (j.success) addLog('BLACKBOX REPLAY STARTED', 'event');
-        } catch(e) { alert('Upload failed'); }
+            if (j.success) addLog('System initialized with log data.', 'event');
+        } catch(e) { alert('Data load failed'); }
     }
 
-    addLog('GCS ONLINE — AWAITING DRONE LINK');
-    setInterval(fetchState, 100);
+    addLog('System initialized. Awaiting telemetry connection...');
+    setInterval(fetchState, 150);
 </script>
 </body>
 </html>
