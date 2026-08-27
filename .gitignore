@@ -7,6 +7,7 @@ datasets/converted/
 datasets/final/
 datasets/real_tactical_data/
 datasets/sample/
+datasets/raw_images/
 datasets/*.zip
 
 # ============================================================

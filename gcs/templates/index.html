@@ -3,529 +3,705 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GCS - Vision SLAM Explorer</title>
+    <title>TACTICAL DRONE GCS — INDOOR RESCUE AI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --bg-color: #050810;
-            --panel-bg: rgba(10, 20, 35, 0.4);
-            --panel-border: rgba(0, 255, 255, 0.3);
-            --text-main: #e0f2fe;
-            --accent-cyan: #00ffff;
-            --accent-green: #39ff14;
-            --accent-red: #ff3333;
+            --cyan:    #00f5ff;
+            --green:   #00ff88;
+            --red:     #ff2d2d;
+            --yellow:  #ffd600;
+            --bg:      #020608;
+            --panel:   rgba(0, 20, 30, 0.85);
+            --border:  rgba(0, 245, 255, 0.25);
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            background-image: 
-                linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 30px 30px;
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--cyan);
+            font-family: 'Share Tech Mono', monospace;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
             overflow: hidden;
+            display: grid;
+            grid-template-rows: 48px 1fr 36px;
+            grid-template-columns: 1fr;
         }
 
-        /* Header */
-        .header {
+        /* ── SCAN LINE EFFECT ── */
+        body::after {
+            content: '';
+            position: fixed; inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0,0,0,0.04) 0px,
+                rgba(0,0,0,0.04) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+            z-index: 9000;
+        }
+
+        /* ══════════════ TOPBAR ══════════════ */
+        #topbar {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding: 10px 25px;
-            background: rgba(0, 0, 0, 0.5);
-            border-bottom: 1px solid var(--panel-border);
+            justify-content: space-between;
+            padding: 0 20px;
+            background: rgba(0,5,10,0.95);
+            border-bottom: 1px solid var(--border);
+            position: relative;
             z-index: 100;
         }
-        .header h1 {
+        #topbar::before {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+            opacity: 0.6;
+        }
+
+        .title-block { display: flex; align-items: center; gap: 14px; }
+        .title-block .logo {
             font-family: 'Orbitron', sans-serif;
-            color: var(--accent-cyan);
-            margin: 0;
-            font-size: 1.5rem;
+            font-size: 1.05rem;
+            font-weight: 900;
+            letter-spacing: 4px;
+            color: var(--cyan);
+            text-shadow: 0 0 12px var(--cyan);
+        }
+        .title-block .subtitle {
+            font-size: 0.65rem;
+            color: rgba(0,245,255,0.5);
             letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
         }
-        
-        .upload-btn {
-            background: rgba(0, 255, 255, 0.1);
-            border: 1px solid var(--accent-cyan);
-            color: var(--accent-cyan);
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
+        .divider { width: 1px; height: 28px; background: var(--border); }
+
+        .top-stat { text-align: center; }
+        .top-stat .lbl { font-size: 0.55rem; color: rgba(255,255,255,0.35); letter-spacing: 1px; }
+        .top-stat .val {
             font-family: 'Orbitron', sans-serif;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        .upload-btn:hover { background: rgba(0, 255, 255, 0.3); }
-
-        /* Split Layout */
-        .split-container {
-            display: flex;
-            flex: 1;
-            width: 100%;
+            font-size: 0.8rem;
+            font-weight: 700;
         }
 
-        /* 50% Panel Base */
-        .half-panel {
-            flex: 1;
-            position: relative;
-            border-right: 1px solid rgba(0, 255, 255, 0.2);
-            display: flex;
-            flex-direction: column;
-            background: #000;
+        #sys-status-val { color: var(--green); }
+        .rec-ring {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--red);
+            box-shadow: 0 0 8px var(--red);
+            animation: blink 1.2s infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+        .top-right { display: flex; align-items: center; gap: 18px; }
+        .upload-btn {
+            background: transparent;
+            border: 1px solid rgba(0,245,255,0.4);
+            color: var(--cyan);
+            padding: 4px 14px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s;
+            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+        }
+        .upload-btn:hover {
+            background: rgba(0,245,255,0.12);
+            border-color: var(--cyan);
+            box-shadow: 0 0 14px rgba(0,245,255,0.3);
         }
 
-        /* Left: Vision Camera */
-        .vision-container {
-            flex: 1;
-            position: relative;
+        #clock { font-size: 0.85rem; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
+
+        /* ══════════════ MAIN GRID ══════════════ */
+        #main {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 0;
             overflow: hidden;
         }
-        .vision-container img {
+
+        /* ── LEFT: VIDEO + OVERLAY ── */
+        #vision-panel {
+            position: relative;
+            background: #000;
+            overflow: hidden;
+            border-right: 1px solid var(--border);
+        }
+
+        #camera-feed {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            opacity: 0.9;
-        }
-        
-        /* HUD Overlays for Vision */
-        .hud-overlay {
-            position: absolute;
-            pointer-events: none;
-            font-family: 'Orbitron', sans-serif;
-        }
-        .hud-top-left {
-            top: 20px; left: 20px;
-            color: var(--accent-cyan);
-            font-size: 1.2rem;
-            text-shadow: 0 0 8px #000;
-        }
-        .rec-dot {
-            display: inline-block;
-            width: 12px; height: 12px;
-            background-color: var(--accent-red);
-            border-radius: 50%;
-            margin-right: 8px;
-            animation: pulse-danger 1.5s infinite;
+            display: block;
         }
 
-        /* Alerts Overlay (Bottom of Camera) */
-        .alerts-overlay {
-            position: absolute;
-            bottom: 20px; left: 20px;
-            width: calc(100% - 40px);
+        /* Corner brackets */
+        .corner { position: absolute; width: 24px; height: 24px; pointer-events: none; }
+        .corner.tl { top: 16px; left: 16px; border-top: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+        .corner.tr { top: 16px; right: 16px; border-top: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+        .corner.bl { bottom: 16px; left: 16px; border-bottom: 2px solid var(--cyan); border-left: 2px solid var(--cyan); }
+        .corner.br { bottom: 16px; right: 16px; border-bottom: 2px solid var(--cyan); border-right: 2px solid var(--cyan); }
+
+        /* HUD: top-left */
+        #hud-tl {
+            position: absolute; top: 24px; left: 24px;
             pointer-events: none;
-            display: flex;
-            flex-direction: column-reverse; /* 최신 알림이 밑에서 위로 쌓이게 */
-            gap: 10px;
         }
-        .alert-item {
-            background: rgba(255, 51, 51, 0.2);
-            backdrop-filter: blur(5px);
-            border: 1px solid var(--accent-red);
-            border-left: 5px solid var(--accent-red);
-            padding: 10px 15px;
-            border-radius: 4px;
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1rem;
-            color: #fff;
-            text-shadow: 0 0 5px #000;
-            display: flex;
-            justify-content: space-between;
-            animation: slide-in 0.3s ease-out forwards;
-            max-width: 80%;
+        .hud-line {
+            font-size: 0.72rem;
+            line-height: 1.7;
+            text-shadow: 0 0 6px currentColor;
+        }
+        .hud-line.green { color: var(--green); }
+        .hud-line.cyan  { color: var(--cyan); }
+        .hud-line.yellow { color: var(--yellow); }
+
+        /* HUD: top-right */
+        #hud-tr {
+            position: absolute; top: 24px; right: 24px;
+            text-align: right;
+            pointer-events: none;
         }
 
-        /* Right: SLAM Map */
-        .map-container {
-            flex: 1;
-            position: relative;
-            background: rgba(0, 15, 5, 0.8);
-            overflow: hidden;
-        }
-        .map-grid-bg {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-image: 
-                linear-gradient(rgba(57, 255, 20, 0.15) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(57, 255, 20, 0.15) 1px, transparent 1px);
-            background-size: 40px 40px; /* 큰 그리드 */
-        }
-        .map-center-crosshair {
+        /* CENTER CROSSHAIR */
+        #crosshair {
             position: absolute;
             top: 50%; left: 50%;
-            width: 100%; height: 100%;
+            transform: translate(-50%, -50%);
             pointer-events: none;
-            border-top: 1px dashed rgba(57, 255, 20, 0.3);
-            border-left: 1px dashed rgba(57, 255, 20, 0.3);
-            transform: translate(-50%, -50%);
         }
-        .drone-marker {
-            position: absolute;
-            width: 0; height: 0;
-            border-left: 12px solid transparent;
-            border-right: 12px solid transparent;
-            border-bottom: 24px solid var(--accent-green);
-            transform: translate(-50%, -50%);
-            filter: drop-shadow(0 0 10px var(--accent-green));
-            transition: all 0.3s ease-out;
-            z-index: 10;
-        }
-        .trajectory-dot {
-            position: absolute;
-            width: 4px; height: 4px;
-            background: rgba(57, 255, 20, 0.5);
+        .ch-ring {
+            width: 48px; height: 48px;
+            border: 1px solid rgba(0,245,255,0.35);
             border-radius: 50%;
-            transform: translate(-50%, -50%);
+            position: relative;
         }
-        .threat-marker {
+        .ch-ring::before, .ch-ring::after {
+            content: '';
             position: absolute;
-            width: 16px; height: 16px;
-            background: var(--accent-red);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 15px var(--accent-red);
-            animation: pulse-danger 1s infinite;
-            z-index: 5;
+            background: rgba(0,245,255,0.4);
         }
-        .survivor-marker {
+        .ch-ring::before { top: 50%; left: -10px; right: -10px; height: 1px; transform: translateY(-50%); }
+        .ch-ring::after  { left: 50%; top: -10px; bottom: -10px; width: 1px; transform: translateX(-50%); }
+
+        /* Alert strip */
+        #alert-strip {
             position: absolute;
-            width: 16px; height: 16px;
-            background: var(--accent-green);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 15px var(--accent-green);
-            animation: pulse-danger 1s infinite;
-            z-index: 5;
-        }
-        .node-marker {
-            position: absolute;
-            width: 20px; height: 20px;
-            background: #0088ff;
-            border: 2px solid #fff;
-            border-radius: 4px;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 20px #0088ff;
-            z-index: 6;
+            bottom: 20px; left: 20px; right: 20px;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            flex-direction: column-reverse;
+            gap: 6px;
+            pointer-events: none;
         }
-        .node-marker::after {
-            content: "↑";
+        .alert-item {
+            background: rgba(255,45,45,0.15);
+            border: 1px solid var(--red);
+            border-left: 3px solid var(--red);
+            padding: 6px 12px;
+            font-size: 0.68rem;
             color: #fff;
-            font-weight: bold;
-            font-size: 12px;
+            clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+            animation: slide-in 0.25s ease;
+            letter-spacing: 0.5px;
+        }
+        .alert-item.survivor {
+            border-color: var(--green);
+            border-left-color: var(--green);
+            background: rgba(0,255,136,0.1);
+            clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+        }
+        @keyframes slide-in {
+            from { transform: translateX(-16px); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
         }
 
-        /* Telemetry Overlay (Top Right of Map) */
-        .telemetry-overlay {
+        /* MODE badge bottom-right */
+        #mode-badge {
             position: absolute;
-            top: 20px; right: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            border: 1px solid var(--accent-green);
-            padding: 15px;
-            border-radius: 8px;
-            font-family: 'Orbitron', sans-serif;
-            color: var(--accent-green);
-            min-width: 150px;
+            bottom: 24px; right: 24px;
+            text-align: right;
+            pointer-events: none;
         }
-        .tel-layer-badge {
-            background: var(--accent-cyan);
+        .mode-line { font-size: 0.7rem; line-height: 1.8; }
+
+        /* ── RIGHT PANEL ── */
+        #right-panel {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            overflow: hidden;
+        }
+
+        /* MAP */
+        #map-panel {
+            position: relative;
+            background: #010d08;
+            border-bottom: 1px solid var(--border);
+            overflow: hidden;
+        }
+        #map-panel::before {
+            content: '';
+            position: absolute; inset: 0;
+            background:
+                linear-gradient(rgba(0,255,136,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,136,0.06) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        .map-label {
+            position: absolute; top: 10px; left: 12px;
+            font-size: 0.6rem; letter-spacing: 2px; color: var(--green);
+            opacity: 0.7;
+        }
+        #layer-badge {
+            position: absolute; top: 8px; right: 12px;
+            background: var(--green);
             color: #000;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: 900;
-            font-size: 1.2rem;
-            text-align: center;
-            margin-bottom: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.65rem; font-weight: 900;
+            padding: 2px 8px;
+            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+        }
+        #map-viewport {
+            position: absolute; inset: 32px 0 0 0;
+            overflow: hidden;
+        }
+        #drone-icon {
+            position: absolute;
+            width: 0; height: 0;
+            border-left: 9px solid transparent;
+            border-right: 9px solid transparent;
+            border-bottom: 18px solid var(--green);
+            transform: translate(-50%, -50%);
+            filter: drop-shadow(0 0 8px var(--green));
+            transition: left 0.3s ease, top 0.3s ease;
+            z-index: 10;
+        }
+        #trajectory-layer { position: absolute; inset: 0; }
+        .traj-dot {
+            position: absolute;
+            width: 3px; height: 3px;
+            background: rgba(0,255,136,0.45);
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+        }
+        .threat-mk {
+            position: absolute;
+            width: 12px; height: 12px;
+            background: var(--red);
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+            box-shadow: 0 0 12px var(--red);
+            animation: blink 1s infinite;
+            z-index: 5;
+        }
+        .survivor-mk {
+            position: absolute;
+            width: 12px; height: 12px;
+            background: var(--green);
+            border-radius: 50%;
+            transform: translate(-50%,-50%);
+            box-shadow: 0 0 12px var(--green);
+            animation: blink 1.5s infinite;
+            z-index: 5;
+        }
+
+        /* TELEMETRY PANEL */
+        #tel-panel {
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow: hidden;
+        }
+        .tel-title {
+            font-size: 0.55rem;
+            letter-spacing: 3px;
+            color: rgba(0,245,255,0.4);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+            margin-bottom: 2px;
         }
         .tel-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
-            border-bottom: 1px solid rgba(57, 255, 20, 0.2);
-            padding-bottom: 4px;
+            align-items: center;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
         }
-        .tel-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-        .tel-label { color: #888; font-size: 0.8rem; }
-        .tel-val { font-size: 1.1rem; font-weight: bold; }
+        .tel-lbl { font-size: 0.62rem; color: rgba(255,255,255,0.3); letter-spacing: 1px; }
+        .tel-val {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+        .tel-val.cyan   { color: var(--cyan);   text-shadow: 0 0 8px var(--cyan); }
+        .tel-val.green  { color: var(--green);  text-shadow: 0 0 8px var(--green); }
+        .tel-val.yellow { color: var(--yellow); text-shadow: 0 0 8px var(--yellow); }
+        .tel-val.red    { color: var(--red);    text-shadow: 0 0 8px var(--red); }
 
-        /* Failsafe Overlay */
-        .failsafe-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(20, 0, 0, 0.85);
-            backdrop-filter: blur(15px);
+        /* progress bar */
+        .bar-row { display: flex; flex-direction: column; gap: 3px; }
+        .bar-track {
+            height: 4px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.4s ease;
+        }
+
+        /* ══════════════ STATUSBAR ══════════════ */
+        #statusbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            background: rgba(0,5,10,0.95);
+            border-top: 1px solid var(--border);
+            font-size: 0.6rem;
+            letter-spacing: 1px;
+            color: rgba(0,245,255,0.45);
+        }
+        #statusbar span { display: flex; align-items: center; gap: 8px; }
+
+        /* ══════════════ FAILSAFE OVERLAY ══════════════ */
+        #failsafe-overlay {
+            position: fixed; inset: 0;
+            background: rgba(30,0,0,0.92);
+            backdrop-filter: blur(12px);
             z-index: 9999;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center; gap: 16px;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.4s;
+        }
+        #failsafe-overlay.active { opacity: 1; pointer-events: all; animation: fs-pulse 2s infinite; }
+        #failsafe-overlay h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 6vw, 5rem);
+            color: var(--red);
+            text-shadow: 0 0 40px var(--red);
+            letter-spacing: 6px;
+        }
+        #failsafe-overlay p {
+            font-size: 1rem; color: rgba(255,255,255,0.7); letter-spacing: 3px;
+        }
+        @keyframes fs-pulse {
+            0%,100% { box-shadow: inset 0 0 0 0px rgba(255,0,0,0); }
+            50%      { box-shadow: inset 0 0 60px 10px rgba(255,0,0,0.25); }
+        }
+
+        /* Scrollable log */
+        #log-wrap {
+            flex: 1;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s;
+            gap: 4px;
         }
-        .failsafe-overlay.active {
-            opacity: 1;
-            pointer-events: all;
-            animation: bg-pulse-danger 2s infinite;
+        #log-wrap::-webkit-scrollbar { width: 3px; }
+        #log-wrap::-webkit-scrollbar-thumb { background: rgba(0,245,255,0.2); }
+        .log-entry {
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.35);
+            border-left: 2px solid rgba(0,245,255,0.15);
+            padding: 1px 6px;
+            line-height: 1.4;
         }
-        .failsafe-overlay h1 {
-            font-size: 6rem;
-            color: var(--accent-red);
-            text-shadow: 0 0 40px var(--accent-red);
-            margin: 0;
-            font-family: 'Orbitron', sans-serif;
-        }
-        .failsafe-overlay h2 { color: #fff; font-size: 2rem; margin-top: 10px; font-family: 'Orbitron', sans-serif; }
-
-        @keyframes pulse-danger {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; box-shadow: 0 0 25px rgba(255, 51, 51, 0.8); }
-            100% { opacity: 1; }
-        }
-        @keyframes slide-in {
-            from { transform: translateX(-20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes bg-pulse-danger {
-            0% { box-shadow: inset 0 0 0 10px rgba(255, 0, 0, 0.5); }
-            50% { box-shadow: inset 0 0 0 30px rgba(255, 0, 0, 0.8); }
-            100% { box-shadow: inset 0 0 0 10px rgba(255, 0, 0, 0.5); }
-        }
+        .log-entry.event { color: var(--yellow); border-left-color: var(--yellow); }
+        .log-entry.survivor { color: var(--green); border-left-color: var(--green); }
+        .log-entry.hazard { color: var(--red); border-left-color: var(--red); }
     </style>
 </head>
 <body>
 
-    <div id="failsafe-overlay" class="failsafe-overlay">
+    <!-- FAILSAFE -->
+    <div id="failsafe-overlay">
         <h1>CRITICAL FAILSAFE</h1>
-        <h2>LINK LOST - INITIATING AUTO RETURN</h2>
+        <p>LINK LOST — INITIATING AUTO RETURN</p>
     </div>
 
-    <header class="header">
-        <h1><span style="color: #fff;">VISION</span> // SLAM EXPLORER</h1>
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <div id="system-status" style="color:var(--accent-cyan); font-family:'Orbitron'; font-weight:bold;">STANDBY</div>
-            <input type="file" id="log-file-input" accept=".csv" style="display: none;" onchange="uploadLogFile(event)">
-            <button class="upload-btn" onclick="document.getElementById('log-file-input').click()">📁 LOAD BLACKBOX</button>
+    <!-- TOPBAR -->
+    <div id="topbar">
+        <div class="title-block">
+            <div>
+                <div class="logo">TACTICAL GCS</div>
+                <div class="subtitle">INDOOR RESCUE &amp; RECON SYSTEM · GPS-DENIED MODE</div>
+            </div>
+            <div class="divider"></div>
+            <div class="top-stat">
+                <div class="lbl">SYS STATUS</div>
+                <div class="val" id="sys-status-val">STANDBY</div>
+            </div>
+            <div class="divider"></div>
+            <div class="top-stat">
+                <div class="lbl">AI ENGINE</div>
+                <div class="val" style="color:var(--green);">YOLOv8n · TRT</div>
+            </div>
+            <div class="divider"></div>
+            <div class="top-stat">
+                <div class="lbl">NAV MODE</div>
+                <div class="val" style="color:var(--yellow);">OPTICAL FLOW</div>
+            </div>
         </div>
-    </header>
+        <div class="top-right">
+            <div id="clock">--:--:--</div>
+            <div class="divider"></div>
+            <input type="file" id="log-file-input" accept=".csv" style="display:none" onchange="uploadLogFile(event)">
+            <button class="upload-btn" onclick="document.getElementById('log-file-input').click()">▶ LOAD BLACKBOX</button>
+        </div>
+    </div>
 
-    <div class="split-container">
-        
-        <!-- Left: AI Vision Feed -->
-        <div class="half-panel">
-            <div class="vision-container">
-                <img src="/video_feed" alt="AI Vision View" id="camera-feed">
-                
-                <div class="hud-overlay hud-top-left">
-                    <span class="rec-dot"></span> DUAL VISION MODE ACTIVE
-                </div>
+    <!-- MAIN -->
+    <div id="main">
 
-                <div class="alerts-overlay" id="alert-list">
-                    <!-- Alerts injected here -->
-                </div>
+        <!-- LEFT: VISION FEED -->
+        <div id="vision-panel">
+            <img src="/video_feed" id="camera-feed" alt="AI Vision">
+
+            <!-- corner brackets -->
+            <div class="corner tl"></div>
+            <div class="corner tr"></div>
+            <div class="corner bl"></div>
+            <div class="corner br"></div>
+
+            <!-- HUD top-left -->
+            <div id="hud-tl">
+                <div class="hud-line cyan"><span class="rec-ring"></span>AI VISION · LIVE</div>
+                <div class="hud-line green" id="hud-mode">MODE: OFFBOARD</div>
+                <div class="hud-line cyan" id="hud-pos">POS: X=0.0m Y=0.0m</div>
+                <div class="hud-line yellow" id="hud-alt">ALT: 0.0m AGL</div>
+            </div>
+
+            <!-- HUD top-right -->
+            <div id="hud-tr">
+                <div class="hud-line cyan">GPS: <span style="color:var(--red)">DENIED</span></div>
+                <div class="hud-line cyan">NAV: <span style="color:var(--green)">OPT.FLOW</span></div>
+                <div class="hud-line cyan">NET: <span style="color:var(--red)">OFFLINE</span></div>
+            </div>
+
+            <!-- crosshair -->
+            <div id="crosshair"><div class="ch-ring"></div></div>
+
+            <!-- alerts -->
+            <div id="alert-strip"></div>
+
+            <!-- bottom-right mode -->
+            <div id="mode-badge">
+                <div class="mode-line" style="color:var(--cyan)">MODE: LOITER / REC <span class="rec-ring"></span></div>
+                <div class="mode-line" style="color:rgba(255,255,255,0.4)">GAIN: N/A</div>
+                <div class="mode-line" style="color:var(--green)">[AI ENABLED]</div>
             </div>
         </div>
 
-        <!-- Right: SLAM Map -->
-        <div class="half-panel">
-            <div class="map-container" id="map-area">
-                <div class="hud-overlay hud-top-left" style="color:var(--accent-green);">
-                    3D SLAM MAPPING (OFF-GRID)
-                </div>
-                
-                <div class="map-grid-bg"></div>
-                <div class="map-center-crosshair"></div>
-                
-                <!-- Trajectory and Drone Marker -->
-                <div id="trajectory-layer"></div>
-                <div id="drone-icon" class="drone-marker" style="top: 50%; left: 50%;"></div>
-                
-                <!-- Telemetry HUD -->
-                <div class="telemetry-overlay">
-                    <div class="tel-layer-badge" id="layer-badge">LAYER: 1F</div>
-                    <div class="tel-row">
-                        <span class="tel-label">MODE</span>
-                        <span class="tel-val" id="flight-mode" style="color:var(--accent-cyan);">OFFBOARD</span>
-                    </div>
-                    <div class="tel-row">
-                        <span class="tel-label">ALT</span>
-                        <span class="tel-val"><span id="pos-z">0.0</span>m</span>
-                    </div>
-                    <div class="tel-row">
-                        <span class="tel-label">POS X</span>
-                        <span class="tel-val"><span id="pos-x">0.0</span>m</span>
-                    </div>
-                    <div class="tel-row">
-                        <span class="tel-label">POS Y</span>
-                        <span class="tel-val"><span id="pos-y">0.0</span>m</span>
-                    </div>
+        <!-- RIGHT PANEL -->
+        <div id="right-panel">
+
+            <!-- MAP -->
+            <div id="map-panel">
+                <div class="map-label">3D SLAM MAP · OFF-GRID</div>
+                <div id="layer-badge">LAYER: 1F</div>
+                <div id="map-viewport">
+                    <div id="trajectory-layer"></div>
+                    <div id="drone-icon" style="left:50%;top:50%"></div>
                 </div>
             </div>
-        </div>
 
+            <!-- TELEMETRY -->
+            <div id="tel-panel">
+                <div class="tel-title">// TELEMETRY · ONBOARD</div>
+
+                <div class="tel-row">
+                    <span class="tel-lbl">FLIGHT MODE</span>
+                    <span class="tel-val cyan" id="t-mode">OFFBOARD</span>
+                </div>
+                <div class="tel-row">
+                    <span class="tel-lbl">ALTITUDE</span>
+                    <span class="tel-val green"><span id="t-alt">0.0</span> m</span>
+                </div>
+                <div class="tel-row">
+                    <span class="tel-lbl">POSITION X</span>
+                    <span class="tel-val cyan"><span id="t-x">0.0</span> m</span>
+                </div>
+                <div class="tel-row">
+                    <span class="tel-lbl">POSITION Y</span>
+                    <span class="tel-val cyan"><span id="t-y">0.0</span> m</span>
+                </div>
+
+                <div class="tel-title" style="margin-top:4px">// MISSION LOG</div>
+                <div id="log-wrap"></div>
+            </div>
+
+        </div>
     </div>
 
-    <script>
-        const mapArea = document.getElementById('map-area');
-        const trajectoryLayer = document.getElementById('trajectory-layer');
-        let lastX = 0, lastY = 0;
-        let isFailsafe = false;
-        let currentLayer = 1; // 1층 기준
+    <!-- STATUSBAR -->
+    <div id="statusbar">
+        <span>JETSON ORIN NANO SUPER · YOLOv8n TensorRT · RealSense D435i</span>
+        <span id="sb-targets">TGT: 0 · WP: 0/0</span>
+        <span id="sb-link" style="color:var(--green)">LINK: ACTIVE</span>
+    </div>
 
-        function calculateFloor(z) {
-            // 0~3m: 1F, 3~6m: 2F, -3~0m: B1 등
-            if (z >= 0) {
-                return Math.floor(z / 3.0) + 1;
+<script>
+    const $ = id => document.getElementById(id);
+    let lastX = 0, lastY = 0;
+    let currentFloor = 1;
+    let isFailsafe = false;
+    let targetCount = 0;
+
+    // Clock
+    setInterval(() => {
+        $('clock').textContent = new Date().toLocaleTimeString('en-US', {hour12:false});
+    }, 1000);
+
+    function calcFloor(z) {
+        return z >= 0 ? Math.floor(z / 3) + 1 : Math.floor(z / 3);
+    }
+    function fmtFloor(n) {
+        return n > 0 ? `${n}F` : n < 0 ? `B${Math.abs(n)}` : 'GND';
+    }
+
+    function addLog(text, type='') {
+        const el = document.createElement('div');
+        el.className = 'log-entry ' + type;
+        const ts = new Date().toLocaleTimeString('en-US',{hour12:false});
+        el.textContent = `[${ts}] ${text}`;
+        const wrap = $('log-wrap');
+        wrap.prepend(el);
+        if (wrap.children.length > 40) wrap.lastChild.remove();
+    }
+
+    async function fetchState() {
+        try {
+            const data = await fetch('/api/state').then(r => r.json());
+
+            // Status
+            const statusEl = $('sys-status-val');
+            statusEl.textContent = data.status;
+            $('t-mode').textContent = data.status;
+
+            const fsOverlay = $('failsafe-overlay');
+            if (data.status.includes('FAILSAFE')) {
+                statusEl.style.color = 'var(--red)';
+                if (!isFailsafe) {
+                    fsOverlay.classList.add('active');
+                    isFailsafe = true;
+                    $('sb-link').textContent = 'LINK: LOST';
+                    $('sb-link').style.color = 'var(--red)';
+                    addLog('CRITICAL FAILSAFE — COMMS LOST', 'hazard');
+                }
             } else {
-                return Math.floor(z / 3.0); // -1: B1, -2: B2
+                statusEl.style.color = 'var(--green)';
+                if (isFailsafe) {
+                    fsOverlay.classList.remove('active');
+                    isFailsafe = false;
+                    $('sb-link').textContent = 'LINK: ACTIVE';
+                    $('sb-link').style.color = 'var(--green)';
+                }
             }
-        }
-        
-        function formatFloor(floorNum) {
-            if (floorNum > 0) return `${floorNum}F`;
-            if (floorNum < 0) return `B${Math.abs(floorNum)}`;
-            return `GND`;
-        }
 
-        async function fetchState() {
-            try {
-                const response = await fetch('/api/state');
-                const data = await response.json();
-                
-                const statusEl = document.getElementById('system-status');
-                const overlay = document.getElementById('failsafe-overlay');
-                
-                statusEl.innerText = data.status;
-                
-                // Status Handling for Failsafe
-                if (data.status.includes('FAILSAFE')) {
-                    statusEl.style.color = "var(--accent-red)";
-                    if(!isFailsafe) {
-                        overlay.classList.add('active');
-                        isFailsafe = true;
-                    }
-                } else {
-                    statusEl.style.color = "var(--accent-cyan)";
-                    if(isFailsafe) {
-                        overlay.classList.remove('active');
-                        isFailsafe = false;
-                    }
-                }
+            // Telemetry
+            const x = data.x ?? 0, y = data.y ?? 0, z = data.z ?? 0;
+            $('t-alt').textContent = z.toFixed(1);
+            $('t-x').textContent   = x.toFixed(1);
+            $('t-y').textContent   = y.toFixed(1);
 
-                // Telemetry
-                document.getElementById('pos-x').innerText = data.x.toFixed(1);
-                document.getElementById('pos-y').innerText = data.y.toFixed(1);
-                document.getElementById('pos-z').innerText = data.z.toFixed(1);
+            // HUD update
+            $('hud-mode').textContent = `MODE: ${data.status}`;
+            $('hud-pos').textContent  = `POS: X=${x.toFixed(1)}m Y=${y.toFixed(1)}m`;
+            $('hud-alt').textContent  = `ALT: ${z.toFixed(1)}m AGL`;
 
-                // Layer / Floor Logic
-                const newLayer = calculateFloor(data.z);
-                if (newLayer !== currentLayer) {
-                    currentLayer = newLayer;
-                    document.getElementById('layer-badge').innerText = `LAYER: ${formatFloor(currentLayer)}`;
-                    // 층이 바뀌면 기존 도화지 초기화 (새로운 층 맵핑 시작)
-                    trajectoryLayer.innerHTML = '';
-                    
-                    // 전환 알림 추가
-                    const alertList = document.getElementById('alert-list');
-                    const div = document.createElement('div');
-                    div.className = 'alert-item';
-                    div.style.borderColor = '#0088ff';
-                    div.innerHTML = `<span style="color:#0088ff;">>>> ELEVATION SHIFT TO ${formatFloor(currentLayer)} <<<</span>`;
-                    alertList.appendChild(div);
-                }
-
-                // Map logic (center = 50%, 1m = 2% of screen to make movements visible)
-                const percentX = 50 + (data.x * 2); 
-                const percentY = 50 - (data.y * 2);
-                
-                const drone = document.getElementById('drone-icon');
-                drone.style.left = `${percentX}%`;
-                drone.style.top = `${percentY}%`;
-                // Simple rotation based on yaw (if provided, else default)
-                let yaw = data.yaw || 0;
-                drone.style.transform = `translate(-50%, -50%) rotate(${yaw}deg)`;
-
-                // Draw trajectory if moved significantly
-                if (Math.abs(data.x - lastX) > 0.5 || Math.abs(data.y - lastY) > 0.5) {
-                    const dot = document.createElement('div');
-                    dot.className = 'trajectory-dot';
-                    dot.style.left = `${percentX}%`;
-                    dot.style.top = `${percentY}%`;
-                    trajectoryLayer.appendChild(dot);
-                    lastX = data.x;
-                    lastY = data.y;
-                }
-
-                // Alerts Update (only render new ones to preserve animation)
-                const alertList = document.getElementById('alert-list');
-                if (data.alerts && data.alerts.length > 0 && alertList.children.length !== data.alerts.length) {
-                    alertList.innerHTML = '';
-                    data.alerts.forEach((alertText, index) => {
-                        const div = document.createElement('div');
-                        div.className = 'alert-item';
-                        div.innerHTML = `<span>${alertText}</span>`;
-                        alertList.appendChild(div);
-                        
-                        // Drop markers based on alert type
-                        if(index === 0 && alertText.includes('발견')) {
-                            const marker = document.createElement('div');
-                            if (alertText.includes('수직 이동로')) {
-                                marker.className = 'node-marker';
-                            } else if (alertText.includes('생존자')) {
-                                marker.className = 'survivor-marker';
-                            } else {
-                                marker.className = 'threat-marker';
-                            }
-                            marker.style.left = `${percentX}%`;
-                            marker.style.top = `${percentY}%`;
-                            trajectoryLayer.appendChild(marker);
-                        }
-                    });
-                }
-            } catch (error) {
-                console.error("Connection error", error);
+            // Floor
+            const newFloor = calcFloor(z);
+            if (newFloor !== currentFloor) {
+                currentFloor = newFloor;
+                $('layer-badge').textContent = `LAYER: ${fmtFloor(currentFloor)}`;
+                $('trajectory-layer').innerHTML = '';
+                addLog(`ELEVATION SHIFT → ${fmtFloor(currentFloor)}`, 'event');
             }
-        }
 
-        async function uploadLogFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+            // Map drone position (1m = 3%)
+            const px = 50 + x * 3;
+            const py = 50 - y * 3;
+            const drone = $('drone-icon');
+            drone.style.left = `${Math.min(95, Math.max(5, px))}%`;
+            drone.style.top  = `${Math.min(95, Math.max(5, py))}%`;
 
-            const formData = new FormData();
-            formData.append('file', file);
+            // Trajectory
+            if (Math.abs(x - lastX) > 0.4 || Math.abs(y - lastY) > 0.4) {
+                const dot = document.createElement('div');
+                dot.className = 'traj-dot';
+                dot.style.left = drone.style.left;
+                dot.style.top  = drone.style.top;
+                $('trajectory-layer').appendChild(dot);
+                lastX = x; lastY = y;
+            }
 
-            try {
-                // Clear previous trajectory
-                trajectoryLayer.innerHTML = '';
-                document.getElementById('alert-list').innerHTML = '';
-                
-                const response = await fetch('/api/upload_log', {
-                    method: 'POST',
-                    body: formData
+            // Alerts
+            const alertStrip = $('alert-strip');
+            if (data.alerts && data.alerts.length > 0 &&
+                alertStrip.children.length !== data.alerts.length) {
+
+                const prev = alertStrip.children.length;
+                alertStrip.innerHTML = '';
+
+                data.alerts.forEach((txt, i) => {
+                    const el = document.createElement('div');
+                    const isSurvivor = txt.includes('생존자');
+                    el.className = 'alert-item' + (isSurvivor ? ' survivor' : '');
+                    el.textContent = txt;
+                    alertStrip.appendChild(el);
+
+                    if (i === 0 && data.alerts.length > prev) {
+                        targetCount++;
+                        $('sb-targets').textContent = `TGT: ${targetCount} · WP: ${targetCount}/10`;
+
+                        const mk = document.createElement('div');
+                        mk.className = isSurvivor ? 'survivor-mk' : 'threat-mk';
+                        mk.style.left = drone.style.left;
+                        mk.style.top  = drone.style.top;
+                        $('trajectory-layer').appendChild(mk);
+
+                        addLog(txt, isSurvivor ? 'survivor' : 'hazard');
+                    }
                 });
-                const result = await response.json();
-                if (result.success) {
-                    console.log("Replay started.");
-                }
-            } catch (error) {
-                alert("Upload failed.");
-                console.error(error);
             }
-        }
 
-        setInterval(fetchState, 100); // 100ms for smooth replay
-    </script>
+        } catch(e) {
+            console.warn('GCS poll error', e);
+        }
+    }
+
+    async function uploadLogFile(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const fd = new FormData();
+        fd.append('file', file);
+        $('trajectory-layer').innerHTML = '';
+        $('alert-strip').innerHTML = '';
+        targetCount = 0;
+        try {
+            const r = await fetch('/api/upload_log', {method:'POST', body:fd});
+            const j = await r.json();
+            if (j.success) addLog('BLACKBOX REPLAY STARTED', 'event');
+        } catch(e) { alert('Upload failed'); }
+    }
+
+    addLog('GCS ONLINE — AWAITING DRONE LINK');
+    setInterval(fetchState, 100);
+</script>
 </body>
 </html>

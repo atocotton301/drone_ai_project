@@ -11,8 +11,8 @@ import threading
 # 모듈 경로 추가
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from jetson.inference import DroneVision
-from scripts.risk_analysis import analyze_risk
-from mapping.semantic_map_overlay import SemanticMapper
+from scripts.risk_analysis import analyze_indoor_tactical
+from mapping.semantic_map_overlay import ApartmentSemanticMap
 from scripts.flight_logger import FlightLogger
 
 # 하드웨어 드라이버 임포트
@@ -50,7 +50,9 @@ def main():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     model_path = os.path.join(base_dir, 'runs', 'detect', 'custom_train', 'weights', 'best.onnx')
     vision = DroneVision(model_path)
-    mapper = SemanticMapper(image_width=640, image_height=480)
+    
+    # 다층 아파트 실내 지도 초기화
+    mapper = ApartmentSemanticMap(floor_height=3.0)
     logger = FlightLogger()
     
     # 2. 리얼센스 카메라 초기화
@@ -65,14 +67,10 @@ def main():
         failsafe = TacticalFailsafeNode(timeout_limit_sec=3.0)
         monitor_thread = threading.Thread(target=failsafe.timeout_interrupt_isr, daemon=True)
         monitor_thread.start()
-        # TODO: 실제 Pixhawk 시리얼 포트(예: /dev/ttyTHS1)에 연결
-        # drone_ctrl = DroneController(system_address="serial:///dev/ttyTHS1:921600")
-        # asyncio.run(drone_ctrl.connect())
     else:
         failsafe = None
         
     print("✅ [HARDWARE SYSTEM] 시스템 정상 가동. (Ctrl+C로 종료)")
-    last_warning_time = 0
     
     # 단순 VIO(Visual Odometry) 흉내를 내기 위한 위치 변수
     drone_x, drone_y, drone_yaw = 0.0, 0.0, 0.0
@@ -97,22 +95,26 @@ def main():
         # [A] YOLOv8 AI 객체 탐지
         detections, result_img = vision.process_frame(color_frame)
         
-        # [B] 위험 평가 알고리즘 (Risk Analysis)
-        is_event, event_info = analyze_risk(detections)
+        # [B] 아파트 실내/전술 위험 평가 알고리즘
+        analysis = analyze_indoor_tactical(detections, current_altitude=drone_z)
         
-        # [C] 3D 지도 맵핑 (실제 RealSense Depth 데이터 반영)
-        mapped_objects = mapper.process_detections(detections, mock_drone_odom, depth_map)
+        # [C] 다층 3D 지도 맵핑
+        mapper.update_drone_position(drone_x, drone_y, drone_z)
+        for target in analysis["targets"]:
+            # 시야각(FOV) 기반 좌표 투영 공식은 추후 적용, 현재는 드론 좌표 근처로 마킹
+            mapper.add_marker(drone_x + 1.0, drone_y + 1.0, drone_z, target['type'], target['desc'])
 
         # 화면 시각화 (OSD)
         cv2.putText(result_img, f"HW MODE: ON (RealSense D435i)", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         cv2.putText(result_img, f"ALT (Depth): {drone_z:.2f}m", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
         
-        if is_event:
-            alert_texts = set([item['type'] for item in event_info])
-            if 'SURVIVOR' in alert_texts:
+        if analysis["targets"]:
+            if analysis["found_survivor"]:
                 cv2.putText(result_img, "!! SURVIVOR DETECTED !!", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 3)
-            elif 'HAZARD' in alert_texts:
-                cv2.putText(result_img, "!! HAZARD DETECTED !!", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
+            if analysis["has_threat"]:
+                cv2.putText(result_img, "!! HAZARD (FIRE/SMOKE) !!", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
+            if analysis["stair_detected"]:
+                cv2.putText(result_img, "STAIRCASE NODE (FLOOR CHANGE)", (10, 150), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 3)
 
         # GCS 서버로 실시간 데이터 전송
         payload = {
@@ -123,11 +125,10 @@ def main():
             "yaw": mock_drone_odom['yaw']
         }
         
-        if is_event and mapped_objects:
+        if analysis["events"]:
             current_time_str = datetime.datetime.now().strftime("%H:%M:%S")
-            main_event = event_info[0]
-            payload['alert'] = f"[{current_time_str}] {main_event['type']} 발견! 좌표(X:{mapped_objects[0]['world_x']}, Y:{mapped_objects[0]['world_y']})"
-            payload['alert_type'] = main_event['type']
+            payload['alert'] = f"[{current_time_str}] {analysis['events'][0]}"
+            payload['alert_type'] = analysis["targets"][0]['type']
         
         try:
             requests.post(f"{GCS_SERVER_URL}/api/update", json=payload, timeout=0.05)

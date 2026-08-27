@@ -1,15 +1,28 @@
-# 커스텀 데이터셋 설정 (person / fire / smoke / weapon 탐지용)
-# datasets/final/ 폴더는 .gitignore 처리됨
-# → git clone 후: python scripts/download_dataset.py 실행으로 자동 구축
+# 아파트 실내 탐색 드론 — 데이터셋 설정
+# 목적: GPS-denied 실내 환경에서 생존자 탐지 + 층별 지도 생성
+#
+# [클래스 정의]
+#   0: person     - 생존자 / 전투원 (서있음, 쓰러짐, 웅크림 모두 탐지)
+#   1: fire       - 화재 (재난 구조 시나리오)
+#   2: smoke      - 연기 (화재 탐지 보조, 시야 확보 판단)
+#   3: door       - 문 (미탐색 구역 진입 경로)
+#   4: staircase  - 계단 (층간 이동 노드 인식 → 다층 지도 생성 트리거)
+#
+# [데이터 출처]
+#   python scripts/download_dataset.py 실행 시 자동 구축
+#   - person:     Roboflow Indoor Person Detection (공개)
+#   - fire/smoke: D-Fire Dataset (CC BY 4.0)
+#   - door:       Roboflow Door Detection (공개)
+#   - staircase:  Roboflow Staircase Detection (공개)
 
-path: C:/AI project/drone_ai_project/datasets/final   # 절대경로 (환경변수 충돌 방지)
+path: C:/AI project/drone_ai_project/datasets/final
 train: images/train
-val: images/val
+val:   images/val
 
-# Classes — 4가지 탐지 대상
-nc: 4
+nc: 5
 names:
-  0: person    # 생존자 / 위협 인원
-  1: fire      # 화재
-  2: smoke     # 연기
-  3: weapon    # 무기류 (총기, 흉기)
+  0: person
+  1: fire
+  2: smoke
+  3: door
+  4: staircase
