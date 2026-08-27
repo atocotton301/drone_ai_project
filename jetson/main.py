@@ -11,6 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from jetson.inference import DroneVision
 from scripts.risk_analysis import analyze_risk
 from mapping.semantic_map_overlay import SemanticMapper
+from mapping.occupancy_map import OccupancyGridMapper
 from scripts.mock_sensors import MockOdometry
 from scripts.flight_logger import FlightLogger
 import threading
@@ -47,6 +48,7 @@ def main():
     print(f"📦 [Model Load] 선택된 모델: {model_path}")
     vision = DroneVision(model_path)
     mapper = SemanticMapper(image_width=640, image_height=480)
+    grid_mapper = OccupancyGridMapper(map_size_m=30.0, resolution=0.05)
     logger = FlightLogger()
     
     # 페일세이프 모니터링 백그라운드 스레드 가동 (3초 타임아웃)
@@ -121,8 +123,15 @@ def main():
 
         is_event, event_info = analyze_risk(detections)
         
-        # [C] 실내 3D 지도 맵핑 (Semantic Map Overlay)
+        # [C] 실내 3D 지도 맵핑 (Semantic Map Overlay) 및 2D 점유 격자 지도 생성
         mapped_objects = mapper.process_detections(detections, mock_drone_odom)
+        
+        # 시뮬레이션용 가짜 뎁스(Depth) 맵 생성 (폭 4m짜리 복도를 비행하는 느낌)
+        fake_depth = np.full((480, 640), 5.0)  # 정면은 5m 뚫려있음
+        fake_depth[:, :150] = 2.0             # 좌측 벽 2m
+        fake_depth[:, 490:] = 2.0             # 우측 벽 2m
+        
+        grid_mapper.update_map(fake_depth, mock_drone_odom['x'], mock_drone_odom['y'], mock_drone_odom['yaw'])
 
         # 화면 시각화 (OSD - On Screen Display) 메인화면
         cv2.putText(result_img1, f"GPS-DENIED MODE: ON", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
@@ -186,6 +195,11 @@ def main():
             success, buffer = cv2.imencode('.jpg', combined_img, [cv2.IMWRITE_JPEG_QUALITY, 70])
             if success:
                 requests.post(f"{GCS_SERVER_URL}/api/upload_frame", data=buffer.tobytes(), headers={'Content-Type': 'application/octet-stream'}, timeout=0.05)
+                
+            # 시뮬레이션 맵 스트리밍 송출
+            map_jpeg = grid_mapper.get_map_jpeg()
+            if map_jpeg:
+                requests.post(f"{GCS_SERVER_URL}/api/upload_map", data=map_jpeg, headers={'Content-Type': 'application/octet-stream'}, timeout=0.05)
         except:
             # 와이파이가 끊어지면 그냥 무시하고 자율비행(Fire-and-forget) 모드로 자연스럽게 넘어감
             pass

@@ -12,10 +12,10 @@ timeout /t 3 > nul
 echo 3. Opening Dashboard...
 start http://127.0.0.1:5001
 
-echo 4. Auto-loading Blackbox data...
+echo 4. Auto-loading Blackbox data... (Skipped for Live Mapping Demo)
 timeout /t 2 > nul
-curl -s -X POST http://127.0.0.1:5001/api/upload_log -F "file=@%~dp0sample_log.csv" > nul
-echo    OK! Blackbox replay started!
+:: curl -s -X POST http://127.0.0.1:5001/api/upload_log -F "file=@%~dp0sample_log.csv" > nul
+:: echo    OK! Blackbox replay started!
 
 echo 5. Starting AI Vision Simulation...
 timeout /t 1 > nul
