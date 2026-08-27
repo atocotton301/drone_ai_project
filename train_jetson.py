@@ -115,7 +115,6 @@ def train(epochs: int, batch: int, imgsz: int, device: str):
         batch=batch,
         device=device,
         name=TRAIN_RUN_NAME,
-        project="runs/detect",
         exist_ok=True,        # 이어서 학습 가능
         patience=20,          # 20 에포크 동안 개선 없으면 조기 종료
         save=True,

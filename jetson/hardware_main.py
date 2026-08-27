@@ -30,7 +30,7 @@ except ImportError:
 # ⚙️ 실제 하드웨어 구동 세팅
 # =====================================================================
 # GCS(지상 관제소)의 IP 주소를 입력하세요. (노트북 IP)
-GCS_SERVER_URL = "http://172.20.10.2:5001" 
+GCS_SERVER_URL = "http://127.0.0.1:5001" 
 # =====================================================================
 
 running = True
@@ -159,18 +159,23 @@ def main():
         except:
             pass # GCS 통신 끊김 무시
 
+        # [자동 시연 모드] 키보드 입력 없이도 카메라 방향으로 천천히 전진 (루프당 3cm)
+        drone_x += 0.03
+
         # (디버그 및 테스트용) 화면 출력 및 키보드로 맵핑 조종 기능 (WASD)
-        cv2.imshow("Hardware AI System", result_img)
-        
-        key = cv2.waitKey(1) & 0xFF
-        if key == ord('q'):
-            break
-        elif key == ord('w'): drone_x += 0.2
-        elif key == ord('s'): drone_x -= 0.2
-        elif key == ord('a'): drone_y -= 0.2
-        elif key == ord('d'): drone_y += 0.2
-        elif key == ord('z'): drone_yaw -= 5.0 # 좌회전
-        elif key == ord('c'): drone_yaw += 5.0 # 우회전
+        try:
+            cv2.imshow("Hardware AI System", result_img)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                break
+            elif key == ord('w'): drone_x += 0.2
+            elif key == ord('s'): drone_x -= 0.2
+            elif key == ord('a'): drone_y -= 0.2
+            elif key == ord('d'): drone_y += 0.2
+            elif key == ord('z'): drone_yaw -= 5.0 # 좌회전
+            elif key == ord('c'): drone_yaw += 5.0 # 우회전
+        except Exception:
+            pass # GUI가 없는 환경(백그라운드) 무시
 
 
     # 자원 정리
