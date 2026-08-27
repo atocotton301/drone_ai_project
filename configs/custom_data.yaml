@@ -1,10 +1,15 @@
-path: ../datasets/real_tactical_data
-train: images/train2017
-val: images/train2017
+# 커스텀 데이터셋 설정 (person / fire / smoke / weapon 탐지용)
+# datasets/final/ 폴더는 .gitignore 처리됨
+# → git clone 후: python scripts/download_dataset.py 실행으로 자동 구축
 
-# Classes
+path: C:/AI project/drone_ai_project/datasets/final   # 절대경로 (환경변수 충돌 방지)
+train: images/train
+val: images/val
+
+# Classes — 4가지 탐지 대상
+nc: 4
 names:
-  0: person
-  1: weapon
-  2: fire
-  3: smoke
+  0: person    # 생존자 / 위협 인원
+  1: fire      # 화재
+  2: smoke     # 연기
+  3: weapon    # 무기류 (총기, 흉기)

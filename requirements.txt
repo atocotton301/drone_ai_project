@@ -1,7 +1,21 @@
-ultralytics==8.1.0
-opencv-python
-numpy
-matplotlib
-pyyaml
-pytest
-Pillow
+# ============================================================
+# 공통 의존성 (PC + Jetson 공통)
+# ============================================================
+ultralytics>=8.1.0       # YOLOv8 (YOLO 학습/추론)
+opencv-python>=4.8.0     # 영상 처리
+numpy>=1.24.0            # 행렬 연산
+matplotlib>=3.7.0        # 학습 결과 시각화
+pyyaml>=6.0              # YAML 파싱
+Pillow>=9.5.0            # 이미지 로딩
+requests>=2.31.0         # GCS HTTP 통신
+flask>=3.0.0             # GCS 대시보드 서버
+
+# 테스트
+pytest>=7.4.0
+
+# ============================================================
+# Jetson 전용 (setup_jetson.sh 에서 별도 설치)
+# ============================================================
+# pyrealsense2          # Intel RealSense SDK (apt로 설치 권장)
+# mavsdk                # PX4 드론 제어 (pip install mavsdk)
+# rclpy                 # ROS 2 Python 바인딩 (ROS 2 설치 후 자동 제공)

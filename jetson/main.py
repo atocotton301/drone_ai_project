@@ -3,7 +3,6 @@ import sys
 import os
 import time
 import signal
-import signal
 import requests
 import datetime
 
@@ -59,7 +58,7 @@ def main():
     # 웹캠 번호는 보통 0번입니다. (웹캠이 없으면 에러가 날 수 있습니다)
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("❌ 오류: 카메라(웹캠)를 열 수 없습니다. 샘플 영상으로 대체하거나 카메라를 연결하세요.")
+        print("❌ 오류: 카메라(웹캠)를 열 수 없습니다. 카메라를 연결하세요.")
         return
         
     print("✅ [DRONE SYSTEM] 시스템 정상 가동. 'q'를 누르면 종료됩니다.")
@@ -81,9 +80,6 @@ def main():
     # 경고 텍스트 도배 방지용 타이머
     last_warning_time = 0
     
-    # GCS 대시보드 서버 주소 (제거됨 - Radio Silence 모드)
-    # gcs_url = "http://127.0.0.01:5000/api/update"
-
     while running:
         ret, frame = cap.read()
         if not ret:
@@ -100,8 +96,19 @@ def main():
         # 드론 위치 실시간 업데이트 (시뮬레이션)
         mock_drone_odom = odometry.get_position()
 
-        # [A] 인공지능 탐지 (Inference)
-        detections, result_img = vision.process_frame(frame)
+        # [A] 인공지능 탐지 (Inference) — 메인 AI 뷰
+        detections, result_img1 = vision.process_frame(frame)
+        
+        # [A-2] 구조물 맵핑 뷰 — 동일 프레임을 엣지 검출(Canny)로 변환
+        # 마치 열화상/뎁스카메라 피드처럼 보이는 효과
+        import numpy as np
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, threshold1=50, threshold2=150)
+        # 엣지를 파란-초록 컬러맵으로 변환 (심도 스캔 느낌)
+        edges_colored = cv2.applyColorMap(edges, cv2.COLORMAP_OCEAN)
+        result_img2 = edges_colored.copy()
+        cv2.putText(result_img2, "[STRUCTURAL SCAN]", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 200), 2)
+        cv2.putText(result_img2, f"DEPTH MAP | ALT {mock_drone_odom.get('z', 1.5):.1f}m", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 200, 255), 2)
         
         # [B] 위험 평가 알고리즘 (Risk Analysis) - 붕괴/재난 시나리오 대응
         # 가상의 계단/에스컬레이터 탐지 주입 (고도가 변환중일 때)
@@ -113,19 +120,19 @@ def main():
         # [C] 실내 3D 지도 맵핑 (Semantic Map Overlay)
         mapped_objects = mapper.process_detections(detections, mock_drone_odom)
 
-        # 화면 시각화 (OSD - On Screen Display)
-        cv2.putText(result_img, f"GPS-DENIED MODE: ON", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-        cv2.putText(result_img, f"POS: {mock_drone_odom['x']:.1f}, {mock_drone_odom['y']:.1f} | ALT: {mock_drone_odom.get('z', 1.5):.1f}m", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
+        # 화면 시각화 (OSD - On Screen Display) 메인화면
+        cv2.putText(result_img1, f"GPS-DENIED MODE: ON", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        cv2.putText(result_img1, f"POS: {mock_drone_odom['x']:.1f}, {mock_drone_odom['y']:.1f} | ALT: {mock_drone_odom.get('z', 1.5):.1f}m", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2)
         
         if is_event:
             # 화면 경고 메세지 처리
             alert_texts = set([item['type'] for item in event_info])
             if 'SURVIVOR' in alert_texts:
-                cv2.putText(result_img, "!! SURVIVOR DETECTED !!", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 3)
+                cv2.putText(result_img1, "!! SURVIVOR DETECTED !!", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 3)
             elif 'HAZARD' in alert_texts:
-                cv2.putText(result_img, "!! HAZARD DETECTED !!", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
+                cv2.putText(result_img1, "!! HAZARD DETECTED !!", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 3)
             elif 'NODE' in alert_texts:
-                cv2.putText(result_img, ">>> VERTICAL TRANSITION NODE <<<", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 100, 0), 3)
+                cv2.putText(result_img1, ">>> VERTICAL TRANSITION NODE <<<", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 100, 0), 3)
 
             # 맵핑 좌표 출력 (3초에 한 번만 출력되도록 스로틀링)
             current_time = time.time()
@@ -137,8 +144,11 @@ def main():
         alert_str = "EVENT" if is_event else ""
         logger.log_state("OFFBOARD", mock_drone_odom['x'], mock_drone_odom['y'], mock_drone_odom.get('z', 1.5), mock_drone_odom['yaw'], len(detections), alert_str)
         
+        # 결과 화면 병합 (Side-by-Side: AI 탐지 뷰 | 구조물 스캔 뷰)
+        combined_img = np.hstack((result_img1, result_img2))
+        
         # 결과 화면 출력
-        cv2.imshow("Drone AI Simulation", result_img)
+        cv2.imshow("Drone AI Simulation", combined_img)
         
         # GCS 서버로 실시간 데이터 전송 (하이브리드 모드)
         payload = {
@@ -169,7 +179,7 @@ def main():
                 pass # failsafe.receive_camera_heartbeat() 은 위에서 처리함
                 
             # 라이브 영상(JPEG) GCS 서버로 스트리밍 송출
-            success, buffer = cv2.imencode('.jpg', result_img, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            success, buffer = cv2.imencode('.jpg', combined_img, [cv2.IMWRITE_JPEG_QUALITY, 70])
             if success:
                 requests.post(f"{GCS_SERVER_URL}/api/upload_frame", data=buffer.tobytes(), headers={'Content-Type': 'application/octet-stream'}, timeout=0.05)
         except:

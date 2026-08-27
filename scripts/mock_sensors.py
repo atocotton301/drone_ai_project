@@ -27,17 +27,17 @@ class MockOdometry:
         dy = self.radius * (math.cos(t)**2 - math.sin(t)**2)
         yaw = math.atan2(dy, dx)
         
-        # 고도(Z축) 시뮬레이션: 20초 주기마다 층(3m) 변경
-        cycle_time = t_sec % 20
-        floor = int((t_sec % 60) / 20) # 0, 1, 2 (1F, 2F, 3F)
+        # 고도(Z축) 시뮬레이션: 시연을 위해 10초 주기마다 층(3m) 변경 (더 다이나믹하게)
+        cycle_time = t_sec % 10
+        floor = int((t_sec % 30) / 10) # 0, 1, 2 (1F, 2F, 3F)
         next_floor = (floor + 1) % 3
         
-        if cycle_time < 16:
-            # 16초 동안은 해당 층 유지
+        if cycle_time < 7:
+            # 7초 동안은 해당 층 유지
             z = 1.5 + floor * 3.0
         else:
-            # 16~20초 구간은 다음 층으로 계단/에스컬레이터 이동 (고도 상승/하강)
-            progress = (cycle_time - 16) / 4.0
+            # 7~10초 구간은 다음 층으로 계단/에스컬레이터 이동 (고도 상승/하강)
+            progress = (cycle_time - 7) / 3.0
             z = 1.5 + floor * 3.0 + progress * ((next_floor - floor) * 3.0)
         
         return {

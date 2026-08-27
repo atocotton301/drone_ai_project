@@ -1,32 +1,62 @@
-# Datasets
-datasets/raw/*
-datasets/converted/*
-datasets/final/*
-!datasets/sample/
-*.zip
+# ============================================================
+# Datasets — 대용량 이미지/데이터는 GitHub에 올리지 않음
+# Jetson에서 setup_jetson.sh 실행 시 자동 다운로드됨
+# ============================================================
+datasets/raw/
+datasets/converted/
+datasets/final/
+datasets/real_tactical_data/
+datasets/sample/
+datasets/*.zip
 
-# Weights
+# ============================================================
+# 학습 결과물 (모델 가중치) — 대용량, 개인 학습 결과
+# ============================================================
+runs/
 *.pt
 *.onnx
 *.engine
+*.tflite
 
-# ROS / Mapping
-*.bag
-outputs/maps/*
-outputs/benchmarks/*
-outputs/validation/*
-outputs/sample_labels/*
+# ============================================================
+# Notebooks 중복 파일
+# ============================================================
+notebooks/*.pt
+notebooks/*.onnx
+notebooks/datasets/
 
+# ============================================================
 # Python
+# ============================================================
 __pycache__/
 *.pyc
+*.pyo
 .venv/
 venv/
 env/
+*.egg-info/
 
-# Logs
-*.log
+# ============================================================
+# ROS / SLAM 출력물
+# ============================================================
+*.bag
+outputs/maps/
+outputs/benchmarks/
+outputs/validation/
+outputs/sample_labels/
+logs/
 
-# Personal/Secrets
+# ============================================================
+# OS / IDE
+# ============================================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ============================================================
+# 보안 / 개인정보
+# ============================================================
 .env
 secret_*
+kaggle.json

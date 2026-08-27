@@ -19,7 +19,20 @@ def calculate_iou(box1, box2):
     iou = inter_area / float(box1_area + box2_area - inter_area)
     return iou
 
-def analyze_risk(detections, person_class_names=['person'], hazard_class_names=['weapon', 'gun', 'knife', 'fire', 'cell phone'], node_class_names=['stairs', 'escalator', 'elevator']):
+def analyze_risk(detections,
+                 person_class_names=['person'],
+                 hazard_class_names=[
+                     # 커스텀 클래스
+                     'weapon', 'gun', 'knife', 'fire', 'smoke',
+                     # COCO 기본 모델로 탐지 가능한 위험물 대체 클래스들
+                     'cell phone',       # 기폭장치/통신장치 위험 가능성
+                     'scissors',         # 날카로운 도구
+                     'baseball bat',     # 타격 도구
+                     'bottle',           # 투척물
+                     'fire hydrant',     # 화재 관련 시설
+                     'backpack',         # 수상한 짐
+                 ],
+                 node_class_names=['stairs', 'escalator', 'elevator', 'bench', 'chair']):
     """
     탐지된 객체 리스트를 분석하여 생존자(Survivor), 위험 요소(Hazard), 수직 이동 노드(Node)를 식별합니다.
     반환값: is_event (bool), identified_targets (list of dict)
