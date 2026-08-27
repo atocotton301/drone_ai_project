@@ -20,8 +20,8 @@ class DroneVision:
         카메라 프레임을 받아 객체 탐지 결과를 반환합니다.
         반환값: detections 리스트 (각 원소는 {'class': int, 'class_name': str, 'conf': float, 'bbox': [x1, y1, x2, y2]})
         """
-        # YOLOv8 추론 실행 (상세 출력 비활성화)
-        results = self.model(frame, verbose=False)
+        # YOLOv8 추론 실행 (상세 출력 비활성화, 신뢰도 65% 이상만 탐지)
+        results = self.model(frame, verbose=False, conf=0.65)
         
         detections = []
         for result in results:
