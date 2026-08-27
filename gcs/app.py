@@ -16,8 +16,9 @@ drone_state = {
     "last_update": time.time()
 }
 
-# 최신 카메라 프레임 (바이트 단위)
+# 최신 카메라 프레임 및 맵 프레임 (바이트 단위)
 latest_frame = None
+latest_map_frame = None
 
 @app.after_request
 def add_header(response):
@@ -132,6 +133,32 @@ def video_feed():
     """웹 브라우저의 <img> 태그에 실시간 영상을 공급합니다."""
     from flask import Response
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/api/upload_map', methods=['POST'])
+def upload_map():
+    """드론이 실시간으로 그린 2D 평면도(Map)를 수신합니다."""
+    global latest_map_frame
+    if request.data:
+        latest_map_frame = request.data
+    return "OK", 200
+
+def generate_map_frames():
+    """맵 스트리밍을 위한 제너레이터 함수"""
+    global latest_map_frame
+    while True:
+        if latest_map_frame:
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + latest_map_frame + b'\r\n')
+        else:
+            # 아직 맵이 안 왔을 때는 1픽셀짜리 투명 이미지(또는 검은 이미지) 반환 처리 가능
+            pass
+        time.sleep(0.05)
+
+@app.route('/map_feed')
+def map_feed():
+    """웹 브라우저의 <img> 태그에 실시간 2D 평면도를 공급합니다."""
+    from flask import Response
+    return Response(generate_map_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/api/state', methods=['GET'])
 def get_state():
