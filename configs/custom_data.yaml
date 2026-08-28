@@ -19,10 +19,8 @@ path: datasets/final
 train: images/train
 val:   images/val
 
-nc: 5
+nc: 3
 names:
   0: person
-  1: fire
-  2: smoke
-  3: door
-  4: staircase
+  1: door
+  2: staircase
