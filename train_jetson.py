@@ -27,8 +27,8 @@ from pathlib import Path
 # 설정
 # ============================================================
 BASE_DIR = Path(__file__).resolve().parent
-DATASET_YAML = BASE_DIR / "configs" / "custom_data.yaml"
-DATASET_FINAL = BASE_DIR / "datasets" / "final"
+DATASET_YAML = BASE_DIR / "datasets" / "final_dataset" / "data.yaml"
+DATASET_FINAL = BASE_DIR / "datasets" / "final_dataset"
 PRETRAINED_MODEL = "yolov8n.pt"  # Ultralytics가 자동 다운로드
 TRAIN_RUN_NAME = "custom_train"
 
